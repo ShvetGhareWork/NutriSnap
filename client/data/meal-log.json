@@ -1,5 +1,24 @@
 [
   {
+    "id": "1773158430809",
+    "imageUrl": "blob:http://localhost:3000/ea0d7e9a-856e-4150-ba17-5da38a0ff323",
+    "foodName": "Chickpea Salad",
+    "grams": 300,
+    "servings": 4,
+    "mealType": "Lunch",
+    "nutrition": {
+      "calories": 1716,
+      "protein": 48,
+      "carbs": 216,
+      "fat": 84,
+      "fiber": 84,
+      "sugar": 84,
+      "sodium": 4716
+    },
+    "loggedAt": "09:30 pm",
+    "date": "10 Mar 2026"
+  },
+  {
     "id": "1772964011775",
     "imageUrl": "blob:http://localhost:3000/94cac257-8b3d-4ffd-82cc-34742491e1c8",
     "foodName": "Veggie Burger",
