@@ -381,7 +381,7 @@ export default function CoachOnboarding() {
             if (!session?.user?.id) return;
             setLoading(true);
             try {
-                const res = await fetch("http://localhost:5000/api/onboarding/coach", {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/onboarding/coach`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ userId: session.user.id, data }),

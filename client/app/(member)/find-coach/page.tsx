@@ -266,7 +266,7 @@ export default function FindCoachPage() {
         // Fetch real coaches from Backend DB
         async function fetchCoaches() {
             try {
-                const res = await fetch("http://localhost:5000/api/user/coaches");
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/user/coaches`);
                 const json = await res.json();
                 if (json.success && json.data.length > 0) {
                     setCoaches(json.data); // Override with DB data
@@ -284,7 +284,7 @@ export default function FindCoachPage() {
         if (!session?.user?.id) return;
 
         try {
-            const res = await fetch("http://localhost:5000/api/chat/connect", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/connect`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

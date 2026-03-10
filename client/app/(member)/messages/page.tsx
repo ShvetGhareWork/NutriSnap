@@ -83,7 +83,7 @@ function Conversation({ chatId, currentUserId, onBack }: { chatId: string; curre
     useEffect(() => {
         async function fetchHistory() {
             try {
-                const res = await fetch(`http://localhost:5000/api/chat/${chatId}/messages`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/${chatId}/messages`);
                 const json = await res.json();
                 if (json.success) setMessages(json.data);
             } catch (err) {
@@ -207,7 +207,7 @@ function MessagesContent() {
         async function fetchChats() {
             if (!session?.user?.id) return;
             try {
-                const res = await fetch(`http://localhost:5000/api/chat?userId=${session.user.id}`);
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat?userId=${session.user.id}`);
                 const json = await res.json();
                 if (json.success) setChats(json.data);
             } catch (err) {

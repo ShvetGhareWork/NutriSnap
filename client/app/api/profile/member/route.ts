@@ -7,7 +7,7 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-    const res = await fetch(`http://localhost:5000/api/profile/member/${session.user.id}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/profile/member/${session.user.id}`, {
       method: 'GET'
     });
     const json = await res.json();
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
     
-    const res = await fetch(`http://localhost:5000/api/profile/member/${session.user.id}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/profile/member/${session.user.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

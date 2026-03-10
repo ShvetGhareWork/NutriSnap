@@ -39,7 +39,7 @@ export default function RegisterPage() {
         if (form.password.length < 8) return setError('Password must be at least 8 characters');
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:5000/api/account/register', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/account/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: form.email, password: form.password, name: form.name }),

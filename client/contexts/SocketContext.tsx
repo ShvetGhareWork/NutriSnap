@@ -21,7 +21,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Only connect if the user is authenticated
         if (status === "authenticated" && session?.user?.id) {
-            const socketInstance = io("http://localhost:5000", {
+            const socketInstance = io(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}`, {
                 withCredentials: true,
                 autoConnect: true,
             });
