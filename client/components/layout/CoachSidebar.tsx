@@ -26,7 +26,7 @@ export default function CoachSidebar() {
     const { coachProfile } = useUserContext();
 
     // Safely extract name and initials
-    const coachName = coachProfile?.fullName || 'Coach';
+    const coachName = coachProfile?.name || 'Coach';
     const initials = coachName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
     return (

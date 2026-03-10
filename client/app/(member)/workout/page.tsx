@@ -86,15 +86,17 @@ export default function WorkoutsPage() {
                         sets.map(async (s) => {
                             try {
                                 // Fetch basic exercise info. Alternatively just show "Loading..." lazily in the card.
-                                const ex = await wgerApi.fetchExerciseById(s.exercise);
+                                const exId = Array.isArray(s.exercise) ? s.exercise[0] : s.exercise;
+                                const ex = await wgerApi.fetchExerciseById(exId);
                                 return {
                                     id: s.id,
-                                    exercise: s.exercise,
+                                    exercise: exId,
                                     sets: s.sets || 0, // In wger, sets are nested or separate. Using a generic 'sets' for UI
                                     exerciseName: ex.name,
                                 };
                             } catch {
-                                return { id: s.id, exercise: s.exercise, sets: 0, exerciseName: 'Unknown Exercise' };
+                                const exId = Array.isArray(s.exercise) ? s.exercise[0] : s.exercise;
+                                return { id: s.id, exercise: exId, sets: 0, exerciseName: 'Unknown Exercise' };
                             }
                         })
                     );
@@ -181,9 +183,9 @@ export default function WorkoutsPage() {
     const handleAddExerciseToDay = async (exerciseId: number) => {
         if (!activeDayIdForExercise) return;
         try {
-            const newSet = await wgerApi.addExerciseToDay({
+            const newSet = await wgerApi.createSet({
                 day: activeDayIdForExercise,
-                exercise: exerciseId,
+                exercise: [exerciseId],
                 sets: 3 // Default
             });
 
@@ -191,7 +193,7 @@ export default function WorkoutsPage() {
 
             const hydratedSet: DaySetting = {
                 id: newSet.id,
-                exercise: newSet.exercise,
+                exercise: exerciseId,
                 sets: 3,
                 exerciseName: exDetails.name
             };
@@ -210,7 +212,7 @@ export default function WorkoutsPage() {
 
     const handleRemoveExercise = async (setId: number, dayId: number) => {
         try {
-            await wgerApi.removeExerciseFromDay(setId);
+            await wgerApi.deleteSet(setId);
             setSettings(prev => ({
                 ...prev,
                 [dayId]: prev[dayId].filter(s => s.id !== setId)

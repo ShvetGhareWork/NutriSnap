@@ -1,6 +1,6 @@
 "use client";
 // ── Imports ───────────────────────────────────────────────────────────────────
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useSocket } from "@/contexts/SocketContext";
@@ -192,7 +192,7 @@ function Conversation({ chatId, currentUserId, onBack }: { chatId: string; curre
 }
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
-export default function MessagesPage() {
+function MessagesContent() {
     const { data: session } = useSession();
     const searchParams = useSearchParams();
     const initialChatId = searchParams.get('chatId');
@@ -264,5 +264,13 @@ export default function MessagesPage() {
             </div>
 
         </div>
+    );
+}
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center text-slate-500">Loading messages...</div>}>
+            <MessagesContent />
+        </Suspense>
     );
 }
