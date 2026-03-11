@@ -4,6 +4,7 @@ import { Bell, Search } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
+import NotificationDropdown from '../NotificationDropdown';
 
 const pageTitles: Record<string, string> = {
     '/member/dashboard': 'Dashboard',
@@ -46,10 +47,7 @@ export default function TopBar() {
             </div>
 
             {/* Notification */}
-            <button className="relative p-2 rounded-xl hover:bg-white/[0.05] transition-colors">
-                <Bell size={18} className="text-white/60" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
-            </button>
+            <NotificationDropdown />
 
             {/* Avatar */}
             <div

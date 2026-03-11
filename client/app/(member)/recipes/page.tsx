@@ -5,8 +5,9 @@ import {
     Search, SlidersHorizontal, ChevronRight, ChevronLeft,
     FlaskConical, CalendarDays, BarChart3, Shuffle, Zap,
     Flame, Clock, Star, BookOpen, Filter, X, RefreshCw, AlertCircle,
-    Heart, Trash2, CalendarPlus, PieChart
+    Heart, Trash2, CalendarPlus, PieChart, Check, Minus, Plus
 } from "lucide-react";
+import { useGlobalStore } from "@/store/useGlobalStore";
 
 type Mode = "bulk" | "cut";
 type FilterTag = "High Protein" | "Under 30 mins" | "Low Carb" | "Vegan" | "High Calorie" | "Indian";
@@ -137,9 +138,15 @@ export default function RecipesPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // --- Persistence States ---
-    const [favorites, setFavorites] = useState<Recipe[]>([]);
-    const [mealPlan, setMealPlan] = useState<PlannedMeal[]>([]);
+    // --- Persistence States via Global Store ---
+    const { 
+        favoriteRecipes: globalFavorites, 
+        toggleFavoriteRecipe, 
+        mealPlan, 
+        addPlannedMeal, 
+        removePlannedMeal,
+        toggleMealPlanEaten 
+    } = useGlobalStore();
 
     // --- Tool States ---
     const [isRandomizing, setIsRandomizing] = useState(false);
@@ -153,31 +160,15 @@ export default function RecipesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [addingToDay, setAddingToDay] = useState<Recipe | null>(null);
 
+    // --- Servings Prompt State ---
+    const [servingsPrompt, setServingsPrompt] = useState<{ id: string, name: string } | null>(null);
+    const [servingsInput, setServingsInput] = useState(1);
+
     const meta = MODE_META[mode];
-
-    // --- Persistence Logic ---
-    useEffect(() => {
-        const savedFavs = localStorage.getItem("macrosnap_favs");
-        const savedPlan = localStorage.getItem("macrosnap_plan");
-        if (savedFavs) setFavorites(JSON.parse(savedFavs));
-        if (savedPlan) setMealPlan(JSON.parse(savedPlan));
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem("macrosnap_favs", JSON.stringify(favorites));
-    }, [favorites]);
-
-    useEffect(() => {
-        localStorage.setItem("macrosnap_plan", JSON.stringify(mealPlan));
-    }, [mealPlan]);
 
     // --- Business Logic ---
     const toggleFavorite = (recipe: Recipe) => {
-        setFavorites(prev => {
-            const exists = prev.find(f => f.id === recipe.id);
-            if (exists) return prev.filter(f => f.id !== recipe.id);
-            return [...prev, recipe];
-        });
+        toggleFavoriteRecipe(recipe);
     };
 
     const addToPlan = (recipe: Recipe, day: string) => {
@@ -186,16 +177,34 @@ export default function RecipesPage() {
             recipe,
             day
         };
-        setMealPlan(prev => [...prev, newEntry]);
+        addPlannedMeal(newEntry);
         setAddingToDay(null);
     };
 
     const removeFromPlan = (entryId: string) => {
-        setMealPlan(prev => prev.filter(p => p.id !== entryId));
+        removePlannedMeal(entryId);
     };
 
     const toggleFilter = (tag: FilterTag) =>
         setActiveFilters(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+
+    const handleToggleEaten = (planId: string, currentCompleted: boolean, recipeName: string) => {
+        if (!currentCompleted) {
+            // Prompt for servings
+            setServingsPrompt({ id: planId, name: recipeName });
+            setServingsInput(1);
+        } else {
+            // Un-check immediately
+            toggleMealPlanEaten(planId, 1);
+        }
+    };
+
+    const confirmServings = () => {
+        if (servingsPrompt) {
+            toggleMealPlanEaten(servingsPrompt.id, servingsInput);
+            setServingsPrompt(null);
+        }
+    };
 
     const handleToolClick = (toolId: string) => {
         switch (toolId) {
@@ -361,16 +370,16 @@ export default function RecipesPage() {
 
             {/* Favorites Section (if any) */}
             {
-                favorites.length > 0 && (
+                globalFavorites.length > 0 && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-base font-black text-white flex items-center gap-2">
                                 <Heart size={18} className="text-red-500 fill-red-500" /> Favorites
-                                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-slate-500">{favorites.length}</span>
+                                <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-slate-500">{globalFavorites.length}</span>
                             </h2>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                            {favorites.map(r => (
+                            {globalFavorites.map(r => (
                                 <RecipeCard
                                     key={r.id}
                                     recipe={r}
@@ -396,12 +405,12 @@ export default function RecipesPage() {
                             <button onClick={() => setMealPlannerOpen(true)} className="text-[10px] text-[#B8FF3C] font-bold uppercase tracking-wider hover:underline">View Full Schedule</button>
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                            {mealPlan.slice(0, 4).map(p => (
+                            {mealPlan.slice(0, 4).map((p: PlannedMeal) => (
                                 <div key={p.id} className="relative group">
                                     <RecipeCard
                                         recipe={p.recipe}
                                         onClick={() => fetchRecipeDetail(p.recipe.id)}
-                                        isFavorite={!!favorites.find(f => f.id === p.recipe.id)}
+                                        isFavorite={!!globalFavorites.find((f: Recipe) => f.id === p.recipe.id)}
                                         onToggleFavorite={() => toggleFavorite(p.recipe)}
                                     />
                                     <div className="absolute top-2 left-2 bg-[#B8FF3C] text-[#0A0A0F] text-[9px] font-black px-2 py-1 rounded-lg shadow-lg">
@@ -703,30 +712,44 @@ export default function RecipesPage() {
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                                    <button
-                                        onClick={() => setAddingToDay(selectedRecipe)}
-                                        className="flex-1 bg-[#B8FF3C] text-[#0A0A0F] py-5 rounded-2xl font-black text-sm hover:scale-[1.02] shadow-lg shadow-[#B8FF3C]/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                    >
-                                        <Zap size={18} fill="currentColor" /> ADD TO MEAL PLAN
-                                    </button>
-                                    <button
-                                        onClick={() => toggleFavorite({
-                                            id: selectedRecipe.id,
-                                            title: selectedRecipe.title,
-                                            image: selectedRecipe.image,
-                                            calories: Math.round(selectedRecipe.nutrition.calories.amount),
-                                            protein: Math.round(selectedRecipe.nutrition.protein.amount),
-                                            carbs: Math.round(selectedRecipe.nutrition.carbs.amount),
-                                            fat: Math.round(selectedRecipe.nutrition.fat.amount),
-                                            readyInMinutes: selectedRecipe.readyInMinutes,
-                                            rating: 4.8,
-                                            diets: selectedRecipe.diets || []
-                                        })}
-                                        className={`bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-black text-sm hover:bg-white/10 transition-all flex items-center justify-center gap-2 ${favorites.find(f => f.id === selectedRecipe.id) ? 'text-red-500 border-red-500/30' : ''
-                                            }`}
-                                    >
-                                        <Heart size={18} fill={favorites.find(f => f.id === selectedRecipe.id) ? "currentColor" : "none"} />
-                                        {favorites.find(f => f.id === selectedRecipe.id) ? 'FAVORITED' : 'FAVORITE'}
+                                    {addingToDay === selectedRecipe ? (
+                                        <div className="bg-[#13131A] border border-[#B8FF3C]/30 rounded-2xl p-4 mt-2 mb-2 animate-in fade-in slide-in-from-bottom-2">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-xs font-bold text-slate-300">Select Day</span>
+                                                <button onClick={() => setAddingToDay(null)} className="text-slate-500 hover:text-white"><X size={14} /></button>
+                                            </div>
+                                            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                                                {DAYS.map(day => (
+                                                    <button key={day} onClick={() => addToPlan(selectedRecipe, day)}
+                                                        className="text-[10px] font-black py-2 rounded-xl border border-white/10 hover:border-[#B8FF3C]/50 hover:bg-[#B8FF3C]/10 transition-all">
+                                                        {day.slice(0, 3)}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setAddingToDay(selectedRecipe)}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-[#B8FF3C] text-[#0A0A0F] px-4 py-3 rounded-2xl text-sm font-black hover:bg-[#d4ff6e] transition-all shadow-lg shadow-[#B8FF3C]/20 border border-[#B8FF3C]">
+                                            <CalendarPlus size={16} /> Add to Plan
+                                        </button>
+                                    )}
+                                    <button onClick={() => toggleFavorite({
+                                        id: selectedRecipe.id,
+                                        title: selectedRecipe.title,
+                                        image: selectedRecipe.image,
+                                        calories: Math.round(selectedRecipe.nutrition.calories.amount),
+                                        protein: Math.round(selectedRecipe.nutrition.protein.amount),
+                                        carbs: Math.round(selectedRecipe.nutrition.carbs.amount),
+                                        fat: Math.round(selectedRecipe.nutrition.fat.amount),
+                                        readyInMinutes: selectedRecipe.readyInMinutes,
+                                        rating: 4.8,
+                                        diets: selectedRecipe.diets || []
+                                    })}
+                                        className={`w-12 h-[46px] rounded-2xl flex items-center justify-center border transition-all ${!!globalFavorites.find((f: Recipe) => f.id === selectedRecipe.id)
+                                            ? 'bg-red-500/10 border-red-500/30 text-red-500 tooltip-trigger relative'
+                                            : 'bg-[#13131A] border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                                            }`}>
+                                        <Heart size={16} fill={!!globalFavorites.find((f: Recipe) => f.id === selectedRecipe.id) ? "currentColor" : "none"} />
                                     </button>
                                 </div>
                             </div>
@@ -746,7 +769,7 @@ export default function RecipesPage() {
                 >
                     <div className="p-6 space-y-6">
                         <div className="flex gap-4 items-center bg-[#13131A] p-4 rounded-2xl border border-white/5">
-                            <img src={addingToDay.image} className="w-16 h-16 rounded-xl object-cover" />
+                            <img src={addingToDay.image} className="w-16 h-16 rounded-xl object-cover" alt="" />
                             <div>
                                 <div className="text-white font-bold text-sm line-clamp-1">{addingToDay.title}</div>
                                 <div className="text-[#B8FF3C] text-[10px] font-black uppercase mt-1">Select Day</div>
@@ -795,18 +818,34 @@ export default function RecipesPage() {
                             <div key={day} className="space-y-3">
                                 <h4 className="text-[10px] font-black text-[#B8FF3C] uppercase tracking-widest text-center py-2 bg-[#B8FF3C]/5 rounded-lg border border-[#B8FF3C]/10">{day}</h4>
                                 <div className="space-y-2">
-                                    {mealPlan.filter(p => p.day === day).map(p => (
-                                        <div key={p.id} className="bg-[#13131A] p-2 rounded-xl border border-white/5 group relative">
-                                            <img src={p.recipe.image} className="w-full h-20 object-cover rounded-lg mb-2" />
-                                            <div className="text-[10px] text-white font-bold line-clamp-1">{p.recipe.title}</div>
-                                            <button
-                                                onClick={() => removeFromPlan(p.id)}
-                                                className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X size={10} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                        {mealPlan.filter(p => p.day === day).map(p => (
+                                            <div key={p.id} className={`bg-[#13131A] p-2 rounded-xl border group relative transition-all ${p.completed ? 'border-emerald-500/50 opacity-70' : 'border-white/5'}`}>
+                                                <img src={p.recipe.image} className="w-full h-20 object-cover rounded-lg mb-2" alt="" />
+                                                <div className="text-[10px] text-white font-bold line-clamp-1 flex items-center gap-1">
+                                                    {p.completed && <Check size={10} className="text-emerald-500 flex-shrink-0" />}
+                                                    <span className={p.completed ? "line-through text-slate-400" : ""}>{p.recipe.title}</span>
+                                                </div>
+                                                <div className="mt-2 flex items-center justify-between">
+                                                    <button 
+                                                        onClick={() => handleToggleEaten(p.id, !!p.completed, p.recipe.title)}
+                                                        className={`text-[9px] font-black px-2 py-1 rounded-md transition-all ${
+                                                            p.completed 
+                                                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' 
+                                                            : 'bg-[#B8FF3C] text-[#0A0A0F] hover:bg-[#d4ff6e]'
+                                                        }`}
+                                                    >
+                                                        {p.completed ? 'Undo' : 'Log Eaten'}
+                                                    </button>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => removeFromPlan(p.id)}
+                                                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            </div>
+                                        ))}
                                     {mealPlan.filter(p => p.day === day).length === 0 && (
                                         <div className="h-20 border-2 border-dashed border-white/5 rounded-xl flex items-center justify-center">
                                             <span className="text-[9px] text-slate-700 font-bold">EMPTY</span>
@@ -817,6 +856,35 @@ export default function RecipesPage() {
                         ))}
                     </div>
                 </div>
+
+                {/* Servings Prompt Sub-Modal */}
+                {servingsPrompt && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-3xl p-4">
+                        <div className="bg-[#13131A] border border-[#B8FF3C]/20 p-6 rounded-2xl w-full max-w-sm space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+                            <h3 className="text-white font-black text-lg">Log as Eaten</h3>
+                            <p className="text-slate-400 text-sm">How many servings of <strong className="text-white">{servingsPrompt.name}</strong> did you eat?</p>
+                            
+                            <div className="flex items-center justify-center gap-4 py-4">
+                                <button onClick={() => setServingsInput(s => Math.max(0.5, s - 0.5))}
+                                    className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                                    <Minus size={16} className="text-slate-300" />
+                                </button>
+                                <div className="text-3xl font-black text-[#B8FF3C] w-16 text-center">{servingsInput}</div>
+                                <button onClick={() => setServingsInput(s => s + 0.5)}
+                                    className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                                    <Plus size={16} className="text-slate-300" />
+                                </button>
+                            </div>
+
+                            <div className="flex gap-2 pt-2">
+                                <button onClick={() => setServingsPrompt(null)}
+                                    className="flex-1 py-3 text-sm font-bold text-slate-400 border border-white/10 rounded-xl hover:bg-white/5 transition-all">Cancel</button>
+                                <button onClick={confirmServings}
+                                    className="flex-1 py-3 text-sm font-black text-[#0A0A0F] bg-[#B8FF3C] rounded-xl hover:bg-[#d4ff6e] transition-all shadow-lg shadow-[#B8FF3C]/20">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

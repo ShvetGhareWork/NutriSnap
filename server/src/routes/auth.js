@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const MemberProfile = require('../models/MemberProfile');
+const CoachProfile = require('../models/CoachProfile');
 
 const router = express.Router();
 
@@ -61,11 +63,22 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
+        // Fetch name from profile if role is set
+        let name = null;
+        if (user.role === 'member') {
+            const profile = await MemberProfile.findOne({ user: user._id });
+            if (profile) name = `${profile.firstName} ${profile.lastName}`;
+        } else if (user.role === 'coach') {
+            const profile = await CoachProfile.findOne({ user: user._id });
+            if (profile) name = profile.name || `${profile.firstName} ${profile.lastName}`;
+        }
+
         res.status(200).json({
             success: true,
             data: {
                 id: user._id,
                 email: user.email,
+                name: name || (user.firstName ? `${user.firstName} ${user.lastName}` : null),
                 role: user.role,
                 onboardingComplete: user.onboardingComplete
             }

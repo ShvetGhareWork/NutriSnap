@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Zap, LayoutDashboard, Camera, BookOpen, Dumbbell, Eye, UserCircle, Settings, Bell, MessageCircle, LogOut, Menu, X, ChevronLeft } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRemindersRunner } from "@/hooks/useRemindersRunner";
+import { useGlobalStore } from "@/store/useGlobalStore";
+import { useEffect } from "react";
+import NotificationDropdown from "@/components/NotificationDropdown";
 
 const NAV_MAIN = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -142,8 +146,48 @@ function Sidebar({
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+    const { data: session } = useSession();
+    const setUser = useGlobalStore(state => state.setUser);
+    const user = useGlobalStore(state => state.user);
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        if (session?.user) {
+            const sessionName = (session.user as any).name;
+            const [fName, ...lNames] = (sessionName || "").split(" ");
+            const lName = lNames.join(" ");
+
+            if (!user || (!user.firstName && fName)) {
+                // Sync of session to store if store is empty or has placeholder name
+                setUser({
+                    _id: (session.user as any).id || "1",
+                    userId: (session.user as any).id || "1",
+                    firstName: fName || "User",
+                    lastName: lName || "",
+                    age: user?.age || 25,
+                    gender: user?.gender || 'other',
+                    heightCm: user?.heightCm || 175,
+                    weightKg: user?.weightKg || 70,
+                    goal: user?.goal || 'maintain',
+                    experience: user?.experience || 'beginner',
+                    activityLevel: user?.activityLevel || 'moderate',
+                    targetCalories: user?.targetCalories || 2000,
+                    targetProtein: user?.targetProtein || 150,
+                    targetCarbs: user?.targetCarbs || 200,
+                    targetFat: user?.targetFat || 60,
+                    aiAdaptive: user?.aiAdaptive || true,
+                    notifications: user?.notifications || true
+                });
+            }
+        }
+    }, [session, user, setUser]);
+
+    useRemindersRunner();
+
+    const userName = user?.firstName ? `${user.firstName} ${user.lastName || ""}` : (session?.user as any)?.name || "User";
+    const initials = userName.trim().split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
     return (
         <div className="h-screen bg-[#0A0A0F] flex overflow-hidden">
@@ -177,17 +221,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <button className="w-9 h-9 bg-[#13131A] border border-white/[0.08] rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors relative">
-                                <Bell size={16} />
-                                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#B8FF3C] rounded-full" />
-                            </button>
+                            <NotificationDropdown />
                             <div className="flex items-center gap-2 bg-[#13131A] border border-white/[0.08] rounded-xl px-2.5 py-1.5 cursor-pointer hover:border-white/15 transition-colors">
                                 <div className="hidden sm:block text-right">
-                                    <p className="text-xs font-bold text-white leading-none">Alex Rivera</p>
+                                    <p className="text-xs font-bold text-white leading-none">{userName}</p>
                                     <p className="text-[10px] text-[#B8FF3C] mt-0.5">Poweruser</p>
                                 </div>
                                 <div className="w-7 h-7 bg-gradient-to-br from-[#B8FF3C] to-[#10b981] rounded-lg flex items-center justify-center text-[#0A0A0F] font-black text-xs flex-shrink-0">
-                                    AR
+                                    {initials}
                                 </div>
                             </div>
                         </div>

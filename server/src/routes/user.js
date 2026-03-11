@@ -51,4 +51,33 @@ router.get('/coaches', async (req, res) => {
     }
 });
 
+// Fetch user notifications
+router.get('/notifications/:userId', async (req, res) => {
+    try {
+        const Notification = require('../models/Notification');
+        const notifications = await Notification.find({ user: req.params.userId }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, count: notifications.length, data: notifications });
+    } catch (error) {
+        console.error('Fetch notifications error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
+// Mark notification as read
+router.put('/notifications/:notificationId/read', async (req, res) => {
+    try {
+        const Notification = require('../models/Notification');
+        const notification = await Notification.findById(req.params.notificationId);
+        if (!notification) return res.status(404).json({ success: false, error: 'Notification not found' });
+        
+        notification.read = true;
+        await notification.save();
+        
+        res.status(200).json({ success: true, data: notification });
+    } catch (error) {
+        console.error('Update notification error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 module.exports = router;

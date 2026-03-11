@@ -51,6 +51,7 @@ export const authOptions: NextAuthOptions = {
       }
       if (user) {
         token.id = user.id;
+        token.name = (user as any).name;
         token.role = (user as unknown as { role: string }).role;
         token.onboardingComplete = (user as unknown as { onboardingComplete: boolean }).onboardingComplete;
       }
@@ -59,6 +60,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;
         session.user.role = token.role as string;
         session.user.onboardingComplete = token.onboardingComplete as boolean;
       }

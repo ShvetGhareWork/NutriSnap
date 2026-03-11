@@ -1,13 +1,13 @@
 "use client";
-// FILE LOCATION: app/(dashboard)/profile/page.tsx
-// Content-only — NO Sidebar/Header (parent layout owns those)
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import {
     User, Camera, Check, ChevronDown, Zap, Scale,
     Ruler, Target, Activity, Flame, Beef, Wheat,
     Droplets, Bell, BellOff, Sparkles, Save, X,
-    Shield, Trash2, LogOut, Moon, Sun,
+    Shield, Trash2, LogOut, Loader2
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -33,15 +33,14 @@ interface ProfileData {
     plan: string;
 }
 
-// ── Initial data (pre-filled from onboarding) ─────────────────────────────────
 const INITIAL: ProfileData = {
-    firstName: "Alex",
-    lastName: "Rivera",
-    email: "alex@example.com",
+    firstName: "",
+    lastName: "",
+    email: "",
     gender: "male",
-    age: "28",
-    heightCm: "175",
-    weightKg: "78",
+    age: "",
+    heightCm: "",
+    weightKg: "",
     goal: "maintain",
     activityLevel: "moderate",
     experience: "Intermediate",
@@ -53,7 +52,7 @@ const INITIAL: ProfileData = {
     aiAdaptive: true,
     avatarUrl: "",
     memberSince: "Jan 2024",
-    plan: "Premium Plan",
+    plan: "Standard Plan",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -137,20 +136,61 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
     );
 }
 
-// ── Activity level cards ──────────────────────────────────────────────────────
 const ACTIVITY_LEVELS = [
-    { value: "sedentary", label: "Low", desc: "Sedentary lifestyle with minimal movement. Recommended for desk-based roles.", days: "0-1 days/week", icon: "🛋️" },
-    { value: "moderate", label: "Moderate", desc: "Active lifestyle with consistent training. Ideal for most fitness enthusiasts.", days: "3-5 days/week", icon: "🏃" },
-    { value: "very_active", label: "High", desc: "Intense physical activity or athletic training. High caloric expenditure.", days: "6-7 days/week", icon: "⚡" },
+    { value: "sedentary", label: "Low", desc: "Sedentary lifestyle with minimal movement.", days: "0-1 days/week", icon: "🛋️" },
+    { value: "moderate", label: "Moderate", desc: "Active lifestyle with consistent training.", days: "3-5 days/week", icon: "🏃" },
+    { value: "very_active", label: "High", desc: "Intense physical activity or athletic training.", days: "6-7 days/week", icon: "⚡" },
 ];
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
+    const { data: session } = useSession();
+    const { setUser } = useGlobalStore();
     const [data, setData] = useState<ProfileData>(INITIAL);
+    const [loading, setLoading] = useState(true);
     const [dirty, setDirty] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [activeTab, setActiveTab] = useState<"profile" | "nutrition" | "settings">("profile");
     const avatarRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const fetchProfile = async () => {
+        try {
+            const res = await fetch('/api/profile/member');
+            const result = await res.json();
+            if (result.success && result.data) {
+                const p = result.data;
+                setData({
+                    firstName: p.firstName || "",
+                    lastName: p.lastName || "",
+                    email: session?.user?.email || p.email || "",
+                    gender: p.gender || "male",
+                    age: p.age?.toString() || "",
+                    heightCm: p.heightCm?.toString() || "",
+                    weightKg: p.weightKg?.toString() || "",
+                    goal: p.goal || "maintain",
+                    activityLevel: p.activityLevel || "moderate",
+                    experience: p.experience || "Intermediate",
+                    targetCalories: p.targetCalories?.toString() || "2200",
+                    targetProtein: p.targetProtein?.toString() || "160",
+                    targetCarbs: p.targetCarbs?.toString() || "240",
+                    targetFat: p.targetFat?.toString() || "70",
+                    notifications: p.notifications ?? true,
+                    aiAdaptive: p.aiAdaptive ?? true,
+                    avatarUrl: p.avatarUrl || "",
+                    memberSince: p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : "Jan 2024",
+                    plan: p.plan || (session?.user?.role === 'member' ? "Standard Plan" : "Premium Plan"),
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching profile:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const update = (patch: Partial<ProfileData>) => {
         setData(prev => ({ ...prev, ...patch }));
@@ -158,14 +198,49 @@ export default function ProfilePage() {
         setSaved(false);
     };
 
-    const handleSave = () => {
-        setSaved(true);
-        setDirty(false);
-        setTimeout(() => setSaved(false), 3000);
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await fetch('/api/profile/member', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    gender: data.gender,
+                    age: parseInt(data.age),
+                    heightCm: parseFloat(data.heightCm),
+                    weightKg: parseFloat(data.weightKg),
+                    goal: data.goal,
+                    activityLevel: data.activityLevel,
+                    experience: data.experience,
+                    targetCalories: parseInt(data.targetCalories),
+                    targetProtein: parseInt(data.targetProtein),
+                    targetCarbs: parseInt(data.targetCarbs),
+                    targetFat: parseInt(data.targetFat),
+                    notifications: data.notifications,
+                    aiAdaptive: data.aiAdaptive,
+                }),
+            });
+            const result = await res.json();
+            if (result.success) {
+                setSaved(true);
+                setDirty(false);
+                // Sync with store
+                if (result.data) {
+                    setUser(result.data);
+                }
+                setTimeout(() => setSaved(false), 3000);
+            }
+        } catch (error) {
+            console.error("Error saving profile:", error);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDiscard = () => {
-        setData(INITIAL);
+        fetchProfile();
         setDirty(false);
     };
 
@@ -179,11 +254,21 @@ export default function ProfilePage() {
     const bmi = calcBMI(data.weightKg, data.heightCm);
     const bmiInfo = bmi ? bmiLabel(bmi) : null;
 
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 text-[#B8FF3C] animate-spin" />
+                    <p className="text-slate-500 font-medium">Loading your profile...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-[#0A0A0F]">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-                {/* ── Page header ── */}
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-2xl font-black text-white tracking-tight">My Profile</h1>
                     <div className="flex items-center gap-2">
@@ -193,15 +278,11 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* ── Two-column layout ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
 
-                    {/* ── LEFT: Avatar + identity card ── */}
+                    {/* LEFT: Identity */}
                     <div className="space-y-4">
-
-                        {/* Avatar card */}
                         <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6 flex flex-col items-center text-center">
-                            {/* Avatar */}
                             <div className="relative mb-4">
                                 <div className="w-28 h-28 rounded-full border-[3px] border-[#B8FF3C] overflow-hidden bg-[#0D0D12] flex items-center justify-center">
                                     {data.avatarUrl ? (
@@ -221,9 +302,8 @@ export default function ProfilePage() {
                                 <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                             </div>
 
-                            {/* Name + plan */}
                             <h2 className="text-xl font-black text-white">
-                                {data.firstName || "First"} {data.lastName || "Last"}
+                                {data.firstName || session?.user?.name || "User"} {data.lastName || ""}
                             </h2>
                             <div className="mt-1.5 px-3 py-1 bg-[#B8FF3C]/10 border border-[#B8FF3C]/20 rounded-full">
                                 <span className="text-[10px] font-black text-[#B8FF3C] uppercase tracking-widest">
@@ -232,7 +312,6 @@ export default function ProfilePage() {
                             </div>
                             <div className="mt-2 text-xs text-slate-500">{data.plan}</div>
 
-                            {/* Quick stats */}
                             <div className="w-full mt-5 pt-5 border-t border-white/5 grid grid-cols-3 gap-2 text-center">
                                 <div>
                                     <div className="text-base font-black text-white">{data.heightCm || "—"}</div>
@@ -256,15 +335,8 @@ export default function ProfilePage() {
                                     )}
                                 </div>
                             </div>
-
-                            {bmi && bmiInfo && (
-                                <div className={`mt-3 w-full py-2 rounded-xl text-xs font-bold ${bmiInfo.color} ${bmiInfo.bg}`}>
-                                    {bmiInfo.label} BMI
-                                </div>
-                            )}
                         </div>
 
-                        {/* Tab nav */}
                         <div className="bg-[#13131A] border border-white/8 rounded-2xl p-1.5 flex flex-col gap-1">
                             {([
                                 { id: "profile", label: "Profile", icon: <User size={14} /> },
@@ -285,34 +357,31 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* ── RIGHT: Tab content ── */}
+                    {/* RIGHT: Tab Contents */}
                     <div className="space-y-6">
-
-                        {/* ════ PROFILE TAB ════ */}
                         {activeTab === "profile" && (
                             <>
-                                {/* Personal info */}
                                 <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6">
                                     <SectionTitle icon={<User size={14} />} title="Personal Information" />
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <Field label="First Name" icon={<User size={11} />}>
-                                            <TextInput value={data.firstName} onChange={v => update({ firstName: v })} placeholder="Alex" />
+                                            <TextInput value={data.firstName} onChange={v => update({ firstName: v })} placeholder="First Name" />
                                         </Field>
                                         <Field label="Last Name" icon={<User size={11} />}>
-                                            <TextInput value={data.lastName} onChange={v => update({ lastName: v })} placeholder="Rivera" />
+                                            <TextInput value={data.lastName} onChange={v => update({ lastName: v })} placeholder="Last Name" />
                                         </Field>
                                         <Field label="Gender">
                                             <SelectInput value={data.gender} onChange={v => update({ gender: v })} options={[
                                                 { value: "male", label: "Male" },
                                                 { value: "female", label: "Female" },
-                                                { value: "other", label: "Prefer not to say" },
+                                                { value: "other", label: "Other" },
                                             ]} />
                                         </Field>
                                         <Field label="Age">
-                                            <TextInput value={data.age} onChange={v => update({ age: v })} placeholder="28" type="number" />
+                                            <TextInput value={data.age} onChange={v => update({ age: v })} placeholder="Age" type="number" />
                                         </Field>
                                         <Field label="Email" icon={<Shield size={11} />}>
-                                            <TextInput value={data.email} onChange={v => update({ email: v })} placeholder="alex@example.com" type="email" />
+                                            <TextInput value={data.email} onChange={() => {}} placeholder="Email" type="email" />
                                         </Field>
                                         <Field label="Health Goal">
                                             <SelectInput value={data.goal} onChange={v => update({ goal: v })} options={[
@@ -324,7 +393,6 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                {/* Activity level */}
                                 <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6">
                                     <SectionTitle icon={<Activity size={14} />} title="Activity Level" />
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -339,13 +407,7 @@ export default function ProfilePage() {
                                                         : "border-white/8 bg-[#0D0D12] hover:border-white/20"
                                                         }`}
                                                 >
-                                                    {active && (
-                                                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-[#B8FF3C] rounded-full">
-                                                            <span className="text-[9px] font-black text-[#0A0A0F] uppercase tracking-wider">Active Selection</span>
-                                                        </div>
-                                                    )}
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-lg ${active ? "bg-[#B8FF3C]/20" : "bg-white/5"
-                                                        }`}>
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-lg ${active ? "bg-[#B8FF3C]/20" : "bg-white/5"}`}>
                                                         {level.icon}
                                                     </div>
                                                     <div className={`font-black text-sm mb-1.5 ${active ? "text-[#B8FF3C]" : "text-white"}`}>
@@ -362,11 +424,9 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                {/* Body metrics */}
                                 <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6">
                                     <SectionTitle icon={<Scale size={14} />} title="Body Metrics" />
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        {/* Height */}
                                         <div className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                                 <Ruler size={10} /> Height
@@ -377,13 +437,10 @@ export default function ProfilePage() {
                                                     value={data.heightCm}
                                                     onChange={e => update({ heightCm: e.target.value })}
                                                     className="bg-transparent text-3xl font-black text-white w-20 focus:outline-none"
-                                                    placeholder="175"
                                                 />
                                                 <span className="text-slate-500 text-sm mb-1.5">cm</span>
                                             </div>
                                         </div>
-
-                                        {/* Weight */}
                                         <div className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                                 <Scale size={10} /> Weight
@@ -394,13 +451,10 @@ export default function ProfilePage() {
                                                     value={data.weightKg}
                                                     onChange={e => update({ weightKg: e.target.value })}
                                                     className="bg-transparent text-3xl font-black text-white w-20 focus:outline-none"
-                                                    placeholder="78"
                                                 />
                                                 <span className="text-slate-500 text-sm mb-1.5">kg</span>
                                             </div>
                                         </div>
-
-                                        {/* BMI */}
                                         <div className={`border rounded-2xl p-4 ${bmiInfo ? `${bmiInfo.bg} border-current/20` : "bg-[#0D0D12] border-white/5"}`}>
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">BMI</div>
                                             {bmi && bmiInfo ? (
@@ -413,8 +467,6 @@ export default function ProfilePage() {
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Experience level */}
                                     <div className="mt-4">
                                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Experience Level</div>
                                         <div className="flex flex-wrap gap-2">
@@ -436,156 +488,85 @@ export default function ProfilePage() {
                             </>
                         )}
 
-                        {/* ════ NUTRITION TAB ════ */}
                         {activeTab === "nutrition" && (
-                            <>
-                                {/* Daily targets */}
-                                <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6">
-                                    <SectionTitle icon={<Target size={14} />} title="Daily Targets" />
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {[
-                                            { label: "Calories", key: "targetCalories", unit: "kcal", icon: <Flame size={16} />, color: "text-[#B8FF3C]", bg: "bg-[#B8FF3C]/10" },
-                                            { label: "Protein", key: "targetProtein", unit: "g", icon: <Beef size={16} />, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-                                            { label: "Carbs", key: "targetCarbs", unit: "g", icon: <Wheat size={16} />, color: "text-orange-400", bg: "bg-orange-400/10" },
-                                            { label: "Fat", key: "targetFat", unit: "g", icon: <Droplets size={16} />, color: "text-yellow-400", bg: "bg-yellow-400/10" },
-                                        ].map(({ label, key, unit, icon, color, bg }) => (
-                                            <div key={key} className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
-                                                <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>
-                                                    <span className={color}>{icon}</span>
-                                                </div>
-                                                <div className="flex items-end gap-1 mb-0.5">
-                                                    <input
-                                                        type="number"
-                                                        value={(data as any)[key]}
-                                                        onChange={e => update({ [key]: e.target.value } as any)}
-                                                        className={`bg-transparent text-2xl font-black w-20 focus:outline-none ${color}`}
-                                                    />
-                                                    <span className="text-slate-500 text-xs mb-1">{unit}</span>
-                                                </div>
-                                                <div className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</div>
+                            <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6">
+                                <SectionTitle icon={<Target size={14} />} title="Daily Targets" />
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { label: "Calories", key: "targetCalories", unit: "kcal", icon: <Flame size={16} />, color: "text-[#B8FF3C]", bg: "bg-[#B8FF3C]/10" },
+                                        { label: "Protein", key: "targetProtein", unit: "g", icon: <Beef size={16} />, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+                                        { label: "Carbs", key: "targetCarbs", unit: "g", icon: <Wheat size={16} />, color: "text-orange-400", bg: "bg-orange-400/10" },
+                                        { label: "Fat", key: "targetFat", unit: "g", icon: <Droplets size={16} />, color: "text-yellow-400", bg: "bg-yellow-400/10" },
+                                    ].map(({ label, key, unit, icon, color, bg }) => (
+                                        <div key={key} className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
+                                            <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>
+                                                <span className={color}>{icon}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* AI + preferences */}
-                                <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6 space-y-3">
-                                    <SectionTitle icon={<Sparkles size={14} />} title="AI & Preferences" />
-
-                                    {/* AI Adaptive */}
-                                    <div className="flex items-center justify-between bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-[#B8FF3C]/10 rounded-xl flex items-center justify-center">
-                                                <Sparkles size={15} className="text-[#B8FF3C]" />
+                                            <div className="flex items-end gap-1 mb-0.5">
+                                                <input
+                                                    type="number"
+                                                    value={(data as any)[key]}
+                                                    onChange={e => update({ [key]: e.target.value } as any)}
+                                                    className={`bg-transparent text-2xl font-black w-20 focus:outline-none ${color}`}
+                                                />
+                                                <span className="text-slate-500 text-xs mb-1">{unit}</span>
                                             </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-white">AI Adaptive Targets</div>
-                                                <div className="text-xs text-slate-500 mt-0.5">Targets auto-adjust based on progress</div>
-                                            </div>
+                                            <div className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</div>
                                         </div>
-                                        <Toggle value={data.aiAdaptive} onChange={() => update({ aiAdaptive: !data.aiAdaptive })} />
-                                    </div>
-
-                                    {/* Notifications */}
-                                    <div className="flex items-center justify-between bg-[#0D0D12] border border-white/5 rounded-2xl p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-[#B8FF3C]/10 rounded-xl flex items-center justify-center">
-                                                {data.notifications
-                                                    ? <Bell size={15} className="text-[#B8FF3C]" />
-                                                    : <BellOff size={15} className="text-slate-500" />
-                                                }
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-white">Push Notifications</div>
-                                                <div className="text-xs text-slate-500 mt-0.5">Meal reminders and progress updates</div>
-                                            </div>
-                                        </div>
-                                        <Toggle value={data.notifications} onChange={() => update({ notifications: !data.notifications })} />
-                                    </div>
+                                    ))}
                                 </div>
-                            </>
+                            </div>
                         )}
 
-                        {/* ════ SETTINGS TAB ════ */}
                         {activeTab === "settings" && (
-                            <>
-                                <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6 space-y-3">
-                                    <SectionTitle icon={<Shield size={14} />} title="Account Settings" />
-
-                                    {/* Change password */}
-                                    <div className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:border-white/10 transition-colors cursor-pointer group">
-                                        <div>
-                                            <div className="text-sm font-bold text-white">Change Password</div>
-                                            <div className="text-xs text-slate-500 mt-0.5">Update your account password</div>
-                                        </div>
-                                        <ChevronDown size={14} className="text-slate-500 -rotate-90 group-hover:text-slate-300 transition-colors" />
+                            <div className="bg-[#13131A] border border-white/8 rounded-3xl p-6 space-y-3">
+                                <SectionTitle icon={<Shield size={14} />} title="Account Settings" />
+                                <div className="bg-[#0D0D12] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-bold text-white">Current Plan</div>
+                                        <div className="text-xs text-[#B8FF3C] mt-0.5 font-bold">{data.plan}</div>
                                     </div>
-
-                                    {/* Plan */}
-                                    <div className="bg-[#0D0D12] border border-[#B8FF3C]/20 rounded-2xl p-4 flex items-center justify-between">
-                                        <div>
-                                            <div className="text-sm font-bold text-white">Current Plan</div>
-                                            <div className="text-xs text-[#B8FF3C] mt-0.5 font-bold">{data.plan}</div>
-                                        </div>
-                                        <div className="px-3 py-1.5 bg-[#B8FF3C]/15 border border-[#B8FF3C]/30 rounded-xl">
-                                            <span className="text-xs font-black text-[#B8FF3C]">Upgrade</span>
-                                        </div>
+                                    <div className="px-3 py-1.5 bg-[#B8FF3C]/15 border border-[#B8FF3C]/30 rounded-xl">
+                                        <span className="text-xs font-black text-[#B8FF3C]">Pro</span>
                                     </div>
                                 </div>
-
-                                {/* Danger zone */}
-                                <div className="bg-[#13131A] border border-red-500/15 rounded-3xl p-6 space-y-3">
-                                    <SectionTitle icon={<Trash2 size={14} />} title="Danger Zone" />
-
-                                    <div className="flex items-center justify-between bg-[#0D0D12] border border-white/5 rounded-2xl p-4 hover:border-red-500/20 transition-colors cursor-pointer group">
-                                        <div className="flex items-center gap-3">
-                                            <LogOut size={16} className="text-slate-500 group-hover:text-orange-400 transition-colors" />
-                                            <div>
-                                                <div className="text-sm font-bold text-white">Sign Out</div>
-                                                <div className="text-xs text-slate-500 mt-0.5">Sign out of your account</div>
-                                            </div>
+                                <div className="flex items-center justify-between bg-red-500/5 border border-red-500/15 rounded-2xl p-4 cursor-pointer">
+                                    <div className="flex items-center gap-3">
+                                        <LogOut size={16} className="text-red-400" />
+                                        <div>
+                                            <div className="text-sm font-bold text-red-400">Sign Out</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">Logout of this account</div>
                                         </div>
-                                        <ChevronDown size={14} className="text-slate-500 -rotate-90" />
                                     </div>
-
-                                    <div className="flex items-center justify-between bg-red-500/5 border border-red-500/15 rounded-2xl p-4 hover:border-red-500/30 transition-colors cursor-pointer group">
-                                        <div className="flex items-center gap-3">
-                                            <Trash2 size={16} className="text-red-500/60 group-hover:text-red-400 transition-colors" />
-                                            <div>
-                                                <div className="text-sm font-bold text-red-400">Delete Account</div>
-                                                <div className="text-xs text-slate-500 mt-0.5">Permanently delete all your data</div>
-                                            </div>
-                                        </div>
-                                        <ChevronDown size={14} className="text-slate-500 -rotate-90" />
-                                    </div>
+                                    <ChevronDown size={14} className="text-slate-500 -rotate-90" />
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* ── Sticky save bar (shows when dirty) ── */}
-            <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 z-40 ${dirty || saved ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
-                }`}>
+            <div className={`fixed bottom-0 left-0 right-0 transition-all duration-300 z-40 ${dirty || saved ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}`}>
                 <div className="bg-[#13131A]/95 backdrop-blur-xl border-t border-white/8 px-4 sm:px-6 py-4">
                     <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
                         <p className="text-sm text-slate-400">
-                            {saved ? "✓ Profile saved successfully" : "You have unsaved changes"}
+                            {saved ? "✓ Profile and goals saved to database" : "You have unsaved changes"}
                         </p>
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={handleDiscard}
+                                disabled={saving}
                                 className="px-5 py-2.5 text-sm font-bold text-slate-400 hover:text-white transition-colors"
                             >
-                                Discard Changes
+                                Discard
                             </button>
                             <button
                                 onClick={handleSave}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-[#B8FF3C] text-[#0A0A0F] rounded-xl text-sm font-black hover:bg-[#d4ff6e] shadow-lg shadow-[#B8FF3C]/20 transition-all"
+                                disabled={saving}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-[#B8FF3C] text-[#0A0A0F] rounded-xl text-sm font-black hover:bg-[#d4ff6e] shadow-lg shadow-[#B8FF3C]/20 transition-all disabled:opacity-50"
                             >
-                                {saved ? <Check size={15} /> : <Save size={15} />}
-                                {saved ? "Saved!" : "Save Profile"}
+                                {saving ? <Loader2 size={15} className="animate-spin" /> : (saved ? <Check size={15} /> : <Save size={15} />)}
+                                {saving ? "Saving..." : (saved ? "Saved!" : "Save Changes")}
                             </button>
                         </div>
                     </div>

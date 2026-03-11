@@ -15,22 +15,24 @@ export interface IUser {
 export interface IMemberProfile {
   _id: string;
   userId: string;
-  name: string;
-  avatar?: string;
+  firstName: string;
+  lastName: string;
+  dob?: Date;
   age: number;
+  avatar?: string;
   gender: 'male' | 'female' | 'other';
-  height: number; // cm
-  weight: number; // kg
+  heightCm: number;
+  weightKg: number;
   bodyType?: string;
   goal: 'cut' | 'bulk' | 'maintain';
   experience: 'beginner' | 'intermediate' | 'advanced';
   activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-  targets: {
-    calories: number;
-    protein: number;
-    water: number;
-    aiAdaptive: boolean;
-  };
+  targetCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFat: number;
+  aiAdaptive: boolean;
+  notifications: boolean;
 }
 
 // ===== COACH PROFILE =====
@@ -152,6 +154,7 @@ declare module 'next-auth' {
     user: {
       id: string;
       email: string;
+      name: string;
       role: string;
       onboardingComplete: boolean;
     };
@@ -161,6 +164,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
+    name: string;
     role: string;
     onboardingComplete: boolean;
   }

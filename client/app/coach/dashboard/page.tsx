@@ -1,5 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+
 // ── icons (inline SVGs to keep single-file) ──────────────────────────────────
 const Icons = {
     Logo: () => (
@@ -120,21 +123,6 @@ const Icons = {
     ),
 };
 
-// ── data ──────────────────────────────────────────────────────────────────────
-const clients = [
-    { name: "Sarah Jenkins", status: "Active", program: "Summer Shred 2.0", compliance: 92, statusColor: "text-[#B5FF4D] bg-[#B5FF4D]/10 border-[#B5FF4D]/30", barColor: "bg-[#B5FF4D]" },
-    { name: "David Moore", status: "On Break", program: "Bulk Phase", compliance: 45, statusColor: "text-amber-400 bg-amber-400/10 border-amber-400/30", barColor: "bg-amber-400" },
-    { name: "Jessica Alba", status: "Active", program: "Performance Pro", compliance: 98, statusColor: "text-[#B5FF4D] bg-[#B5FF4D]/10 border-[#B5FF4D]/30", barColor: "bg-[#B5FF4D]" },
-];
-
-const feed = [
-    { user: "Sarah Jenkins", action: "logged a meal", time: "10 minutes ago", note: '"Post-workout smoothie with high-fiber grains…"', Icon: Icons.Fork, color: "bg-[#B5FF4D]/20 text-[#B5FF4D]" },
-    { user: "Marcus Thorne", action: "completed workout", time: "45 minutes ago", note: null, Icon: Icons.Dumbbell, color: "bg-blue-500/20 text-blue-400" },
-    { user: "Elena Rodriguez", action: "hit daily macro goal", time: "1 hour ago", note: null, Icon: Icons.Target, color: "bg-[#B5FF4D]/20 text-[#B5FF4D]" },
-    { user: "New Client", action: "accepted invite", time: "3 hours ago", note: null, Icon: Icons.UserPlus, color: "bg-slate-500/20 text-slate-400" },
-    { user: "David Moore", action: "sent a message", time: "Yesterday", note: null, Icon: Icons.Msg, color: "bg-slate-500/20 text-slate-400" },
-];
-
 const checkIns = [
     { name: "Liam Wilson", time: "Submitted 2h ago" },
     { name: "Emma Watson", time: "Submitted 5h ago" },
@@ -143,13 +131,6 @@ const checkIns = [
 const topPrograms = [
     { name: "Summer Shred 2.0", users: 45 },
     { name: "Foundational Strength", users: 22 },
-];
-
-const statCards = [
-    { label: "Total Clients", value: "142", change: "+12%", Icon: Icons.Users, positive: true },
-    { label: "Active", value: "98", change: "+4%", Icon: Icons.Bolt, positive: true },
-    { label: "Programs", value: "24", change: "Stable", Icon: Icons.Barbell, positive: null },
-    { label: "Goal Success", value: "87%", change: "+2.4%", Icon: Icons.Trophy, positive: true },
 ];
 
 // ── Avatar placeholder ────────────────────────────────────────────────────────
@@ -181,7 +162,9 @@ function Bar({ value, color }: { value: number; color: string }) {
 }
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, change, Icon, positive }: typeof statCards[0]) {
+function StatCard({ label, value, change, Icon, positive }: { 
+    label: string, value: string | number, change: string | null, Icon: any, positive: boolean | null 
+}) {
     return (
         <div className="bg-[#1A2210] border border-white/5 rounded-2xl p-4 flex flex-col gap-3 hover:border-[#B5FF4D]/20 transition-colors">
             <div className="flex items-start justify-between">
@@ -202,11 +185,138 @@ function StatCard({ label, value, change, Icon, positive }: typeof statCards[0])
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function CoachDashboard() {
+    const { data: session } = useSession();
+    const [clients, setClients] = useState<any[]>([]);
+    const [feed, setFeed] = useState<any[]>([]);
+    const [requests, setRequests] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [inviting, setInviting] = useState(false);
+    
+    const [selectedClient, setSelectedClient] = useState<any | null>(null);
+    const [clientLogs, setClientLogs] = useState<any[]>([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+
+    const fetchData = async () => {
+        if (!session?.user?.id) return;
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            
+            // Fetch stats
+            const statsRes = await fetch(`${apiBase}/api/coach/stats/${session.user.id}`);
+            const statsData = await statsRes.json();
+            if (statsData.success) setStats(statsData.data);
+
+            // Fetch clients
+            const clientsRes = await fetch(`${apiBase}/api/coach/clients/${session.user.id}`);
+            const clientsData = await clientsRes.json();
+            if (clientsData.success) setClients(clientsData.data);
+
+            // Fetch requests
+            const requestsRes = await fetch(`${apiBase}/api/coach/requests/${session.user.id}`);
+            const requestsData = await requestsRes.json();
+            if (requestsData.success) setRequests(requestsData.data);
+
+            // Fetch activities
+            const activitiesRes = await fetch(`${apiBase}/api/coach/activities/${session.user.id}`);
+            const activitiesData = await activitiesRes.json();
+            if (activitiesData.success) setFeed(activitiesData.data.map((act: any) => ({
+                user: act.user,
+                action: act.action,
+                time: new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                note: act.note,
+                Icon: act.type === 'meal_log' ? Icons.Fork : act.type === 'workout_complete' ? Icons.Dumbbell : Icons.Bolt,
+                color: act.type === 'meal_log' ? "bg-[#B5FF4D]/20 text-[#B5FF4D]" : "bg-blue-500/20 text-blue-400"
+            })));
+
+        } catch (error) {
+            console.error("Coach dashboard fetch error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchClientLogs = async (clientId: string) => {
+        setLoadingLogs(true);
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/coach/client-logs/${clientId}`);
+            const json = await res.json();
+            if (json.success) setClientLogs(json.data);
+        } catch (error) {
+            console.error("Failed to fetch client logs", error);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
+
+    const handleClientClick = (client: any) => {
+        setSelectedClient(client);
+        fetchClientLogs(client.id); // Assuming c.id is memberId or similar
+    };
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(fetchData, 30000); // Refresh every 30s
+        return () => clearInterval(interval);
+    }, [session]);
+
+    const handleAccept = async (requestId: string) => {
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/coach/accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ relationshipId: requestId })
+            });
+            if (res.ok) {
+                fetchData(); // Refresh all data
+            }
+        } catch (error) {
+            console.error("Failed to accept request", error);
+        }
+    };
+
+    const handleInvite = async () => {
+        const email = prompt("Enter client's email to invite:");
+        if (!email) return;
+
+        setInviting(true);
+        try {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/coach/invite`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    coachId: session?.user?.id,
+                    email 
+                })
+            });
+            if (res.ok) {
+                alert("Invite sent!");
+                fetchData();
+            }
+        } catch (error) {
+            console.error("Invite error", error);
+        } finally {
+            setInviting(false);
+        }
+    };
+
+    const displayStats = [
+        { label: "Total Clients", value: stats?.totalClients || 0, change: "+0%", Icon: Icons.Users, positive: true },
+        { label: "Active", value: stats?.activeUsers || 0, change: "+0%", Icon: Icons.Bolt, positive: true },
+        { label: "Programs", value: stats?.programs || 0, change: "Stable", Icon: Icons.Barbell, positive: null },
+        { label: "Goal Success", value: stats?.successRate || "0%", change: "+0%", Icon: Icons.Trophy, positive: true },
+    ];
+
+    if (loading) return <div className="flex items-center justify-center min-h-[400px] text-white/50">Loading coach dashboard...</div>;
+
     return (
         <div className="space-y-5 animate-fade-in">
             {/* Stat cards */}
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-                {statCards.map((c) => <StatCard key={c.label} {...c} />)}
+                {displayStats.map((c) => <StatCard key={c.label} {...c} />)}
             </div>
 
             {/* Middle row: Client Overview + Activity Feed */}
@@ -218,9 +328,13 @@ export default function CoachDashboard() {
                             <h2 className="font-bold text-white text-base">Client Overview</h2>
                             <p className="text-xs text-white/40 mt-0.5">Monitor daily progress and engagement</p>
                         </div>
-                        <button className="flex-shrink-0 flex items-center gap-2 bg-[#B5FF4D] hover:bg-[#c8ff6e] text-[#0F1A06] font-bold text-xs px-4 py-2 rounded-xl transition-colors">
+                        <button 
+                            onClick={handleInvite}
+                            disabled={inviting}
+                            className="flex-shrink-0 flex items-center gap-2 bg-[#B5FF4D] hover:bg-[#c8ff6e] text-[#0F1A06] font-bold text-xs px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+                        >
                             <Icons.UserPlus />
-                            <span>Invite</span>
+                            <span>{inviting ? 'Inviting...' : 'Invite'}</span>
                         </button>
                     </div>
 
@@ -234,7 +348,8 @@ export default function CoachDashboard() {
                     <div className="space-y-2">
                         {clients.map((c) => (
                             <div
-                                key={c.name}
+                                key={c.id}
+                                onClick={() => handleClientClick(c)}
                                 className="grid grid-cols-1 sm:grid-cols-[1fr_100px_140px_100px] gap-2 items-center bg-white/3 hover:bg-white/6 rounded-xl px-2 py-3 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-2.5">
@@ -242,16 +357,19 @@ export default function CoachDashboard() {
                                     <span className="font-semibold text-sm text-white">{c.name}</span>
                                 </div>
                                 <div>
-                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${c.statusColor}`}>
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${c.status === 'Active' ? 'text-[#B5FF4D] bg-[#B5FF4D]/10 border-[#B5FF4D]/30' : 'text-amber-400 bg-amber-400/10 border-amber-400/30'}`}>
                                         {c.status}
                                     </span>
                                 </div>
                                 <span className="text-sm text-white/60 hidden sm:block">{c.program}</span>
                                 <div className="sm:block">
-                                    <Bar value={c.compliance} color={c.barColor} />
+                                    <Bar value={c.compliance} color={c.compliance > 80 ? "bg-[#B5FF4D]" : "bg-amber-400"} />
                                 </div>
                             </div>
                         ))}
+                        {clients.length === 0 && (
+                            <div className="text-center py-10 text-white/20 text-sm">No clients connected yet.</div>
+                        )}
                     </div>
                 </div>
 
@@ -285,6 +403,9 @@ export default function CoachDashboard() {
                                     </div>
                                 </div>
                             ))}
+                            {feed.length === 0 && (
+                                <div className="text-center py-10 text-white/20 text-sm">No recent activity.</div>
+                            )}
                         </div>
                     </div>
 
@@ -302,21 +423,27 @@ export default function CoachDashboard() {
                         <div className="w-7 h-7 rounded-lg bg-[#B5FF4D]/10 flex items-center justify-center text-[#B5FF4D]">
                             <Icons.Check />
                         </div>
-                        <h2 className="font-bold text-white text-base">Check-in Requests</h2>
+                        <h2 className="font-bold text-white text-base">Client Requests</h2>
                     </div>
                     <div className="space-y-3">
-                        {checkIns.map((ci) => (
-                            <div key={ci.name} className="flex items-center gap-3 bg-white/3 rounded-xl px-3 py-3">
-                                <Avatar name={ci.name} size="md" />
+                        {requests.map((r) => (
+                            <div key={r.id} className="flex items-center gap-3 bg-white/3 rounded-xl px-3 py-3">
+                                <Avatar name={r.name} size="md" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-white truncate">{ci.name}</p>
-                                    <p className="text-[11px] text-white/40">{ci.time}</p>
+                                    <p className="text-sm font-semibold text-white truncate">{r.name}</p>
+                                    <p className="text-[11px] text-white/40">{r.time}</p>
                                 </div>
-                                <button className="text-[10px] font-bold bg-[#B5FF4D] text-[#0F1A06] px-3 py-1.5 rounded-lg hover:bg-[#c8ff6e] transition-colors flex-shrink-0">
-                                    REVIEW
+                                <button 
+                                    onClick={() => handleAccept(r.id)}
+                                    className="text-[10px] font-bold bg-[#B5FF4D] text-[#0F1A06] px-3 py-1.5 rounded-lg hover:bg-[#c8ff6e] transition-colors flex-shrink-0"
+                                >
+                                    ACCEPT
                                 </button>
                             </div>
                         ))}
+                        {requests.length === 0 && (
+                            <div className="text-center py-10 text-white/20 text-sm">No pending requests.</div>
+                        )}
                     </div>
                 </div>
 
@@ -324,7 +451,7 @@ export default function CoachDashboard() {
                 <div className="bg-[#1A2210] border border-white/5 rounded-2xl p-4 sm:p-5">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-7 h-7 rounded-lg bg-[#B5FF4D]/10 flex items-center justify-center text-[#B5FF4D]">
-                            <Icons.Trophy />
+                            <Icons.Bolt />
                         </div>
                         <h2 className="font-bold text-white text-base">Top Programs</h2>
                     </div>
@@ -349,6 +476,78 @@ export default function CoachDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Client Logs Modal */}
+            {selectedClient && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-[#0D0D12] border border-white/10 w-full max-w-2xl rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Avatar name={selectedClient.name} size="lg" />
+                                <div>
+                                    <h2 className="text-xl font-black text-white">{selectedClient.name}</h2>
+                                    <p className="text-sm text-white/40">{selectedClient.program}</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedClient(null)}
+                                className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-white/40 hover:text-white"
+                            >
+                                <Icons.X />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 scrollbar-none">
+                            <h3 className="text-sm font-black text-[#B5FF4D] uppercase tracking-widest mb-4">Recent Meal Logs</h3>
+                            {loadingLogs ? (
+                                <div className="py-20 text-center text-white/20 text-sm">Loading logs...</div>
+                            ) : clientLogs.length === 0 ? (
+                                <div className="text-center py-20 text-white/20 text-sm">No meal logs found for this client.</div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {clientLogs.map((log: any, i: number) => (
+                                        <div key={log._id || i} className="bg-white/5 border border-white/10 rounded-2xl p-5">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex gap-4">
+                                                    {log.imageUrl ? (
+                                                        <img src={log.imageUrl} alt={log.food_name || log.foodName} className="w-14 h-14 rounded-xl object-cover" />
+                                                    ) : (
+                                                        <div className="w-14 h-14 bg-white/5 rounded-xl flex items-center justify-center text-slate-500">
+                                                            <Icons.Fork />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <p className="font-black text-white text-lg">{log.food_name || log.foodName}</p>
+                                                        <p className="text-[10px] text-white/30 uppercase tracking-widest">{new Date(log.createdAt || log.date).toLocaleDateString()} · {log.mealType || 'Meal'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xl font-black text-[#B5FF4D]">{Math.round(log.total_calories || log.nutrition?.calories || 0)} <span className="text-xs text-white/30 uppercase">kcal</span></p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                                                    <p className="text-[9px] text-white/30 uppercase font-black mb-1">Protein</p>
+                                                    <p className="text-sm font-black text-white">{Math.round(log.total_protein || log.nutrition?.protein || 0)}g</p>
+                                                </div>
+                                                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                                                    <p className="text-[9px] text-white/30 uppercase font-black mb-1">Carbs</p>
+                                                    <p className="text-sm font-black text-white">{Math.round(log.total_carbs || log.nutrition?.carbs || 0)}g</p>
+                                                </div>
+                                                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                                                    <p className="text-[9px] text-white/30 uppercase font-black mb-1">Fat</p>
+                                                    <p className="text-sm font-black text-white">{Math.round(log.total_fat || log.nutrition?.fat || 0)}g</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

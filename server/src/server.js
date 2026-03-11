@@ -7,7 +7,9 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const onboardingRoutes = require('./routes/onboarding');
 const profileRoutes = require('./routes/profile');
-
+const coachRoutes = require('./routes/coach');
+const activityRoutes = require('./routes/activity');
+const mealLogRoutes = require('./routes/mealLog');
 const chatRoutes = require('./routes/chat');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -88,6 +90,9 @@ app.use('/api/account', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/coach', coachRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/meal-log', mealLogRoutes);
 app.use('/api/chat', chatRoutes);
 
 const PORT = process.env.PORT || 5000;

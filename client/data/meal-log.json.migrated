@@ -1,0 +1,21 @@
+[
+  {
+    "id": "1773222816324",
+    "imageUrl": "blob:http://localhost:3000/9bf4b491-e3bb-4c93-b714-a04713a58cbb",
+    "foodName": "Indian Thali",
+    "grams": 500,
+    "servings": 1,
+    "mealType": "Lunch",
+    "nutrition": {
+      "calories": 720,
+      "protein": 20,
+      "carbs": 125,
+      "fat": 15,
+      "fiber": 0,
+      "sugar": 80,
+      "sodium": 150
+    },
+    "loggedAt": "03:23 pm",
+    "date": "11 Mar 2026"
+  }
+]

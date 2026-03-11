@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { IMemberProfile, ICoachProfile } from '@/types';
-
+import { useGlobalStore } from '@/store/useGlobalStore';
 interface UserContextType {
     memberProfile: IMemberProfile | null;
     coachProfile: ICoachProfile | null;
@@ -18,6 +18,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [memberProfile, setMemberProfile] = useState<IMemberProfile | null>(null);
     const [coachProfile, setCoachProfile] = useState<ICoachProfile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const setUser = useGlobalStore(state => state.setUser);
 
     const fetchProfile = async () => {
         if (!session?.user) return;
@@ -34,7 +35,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             const json = await res.json();
             if (json?.success) {
-                if (role === 'member') setMemberProfile(json.data);
+                if (role === 'member') {
+                    setMemberProfile(json.data);
+                    setUser(json.data);
+                }
                 else setCoachProfile(json.data);
             }
         } catch (err) {

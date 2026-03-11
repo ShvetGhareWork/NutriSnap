@@ -284,7 +284,7 @@ export default function FindCoachPage() {
         if (!session?.user?.id) return;
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/chat/connect`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/coach/request`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -294,11 +294,13 @@ export default function FindCoachPage() {
             });
             const json = await res.json();
             if (json.success) {
-                // Redirect user to their messages view passing the active chat Id
-                router.push(`/messages?chatId=${json.data._id}`);
+                alert("Request sent successfully! Once the coach accepts, they will be able to see your logs.");
+                // Update local state to reflect requested status if needed
+            } else {
+                alert(json.error || "Failed to send request");
             }
         } catch (err) {
-            console.error("Failed to connect chat", err);
+            console.error("Failed to connect coach", err);
         }
     };
 
