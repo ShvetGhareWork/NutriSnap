@@ -22,7 +22,7 @@ const navItems = [
 
 export default function CoachSidebar() {
     const pathname = usePathname();
-    const { isCollapsed, setIsCollapsed } = useSidebar();
+    const { isCollapsed, setIsCollapsed, isOpen, setIsOpen } = useSidebar();
     const { coachProfile } = useUserContext();
 
     // Safely extract name and initials
@@ -30,11 +30,32 @@ export default function CoachSidebar() {
     const initials = coachName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
 
     return (
-        <motion.aside
-            animate={{ width: isCollapsed ? 80 : 256 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="hidden lg:flex flex-col min-h-screen bg-[#13131A] border-r border-white/[0.06] fixed left-0 top-0 bottom-0 z-40"
-        >
+        <>
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsOpen(false)}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
+            <motion.aside
+                initial={false}
+                animate={{ 
+                    width: isCollapsed ? 80 : 256,
+                    x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024 ? -256 : 0)
+                }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className={cn(
+                    "flex flex-col min-h-screen bg-[#13131A] border-r border-white/[0.06] fixed left-0 top-0 bottom-0 z-50",
+                    !isOpen && "hidden lg:flex"
+                )}
+            >
             {/* Collapse Toggle */}
             <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
@@ -70,7 +91,7 @@ export default function CoachSidebar() {
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
                     return (
-                        <Link key={item.href} href={item.href} className={isCollapsed ? "w-full flex justify-center" : "w-full"}>
+                        <Link key={item.href} href={item.href} onClick={() => setIsOpen(false)} className={isCollapsed ? "w-full flex justify-center" : "w-full"}>
                             <motion.div
                                 whileHover={{ x: isCollapsed ? 0 : 4 }}
                                 title={isCollapsed ? item.label : undefined}
@@ -133,7 +154,7 @@ export default function CoachSidebar() {
                     </AnimatePresence>
                 </div>
 
-                <Link href="/coach/settings" className={isCollapsed ? "w-full flex justify-center" : "w-full"}>
+                <Link href="/coach/settings" onClick={() => setIsOpen(false)} className={isCollapsed ? "w-full flex justify-center" : "w-full"}>
                     <div
                         title={isCollapsed ? "Settings" : undefined}
                         className={cn(
@@ -184,5 +205,6 @@ export default function CoachSidebar() {
                 </button>
             </div>
         </motion.aside>
+        </>
     );
 }

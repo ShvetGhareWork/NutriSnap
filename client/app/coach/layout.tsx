@@ -32,10 +32,10 @@ function CoachLayoutInner({ children }: { children: React.ReactNode }) {
                 </main>
             </div>
 
-            <MobileNav />
         </div>
     );
 }
+
 
 export default function CoachLayout({ children }: { children: React.ReactNode }) {
     return (
