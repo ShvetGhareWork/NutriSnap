@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, Clock, X } from "lucide-react";
+import { Bell, Check, Clock, X, Dumbbell } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 export default function NotificationDropdown() {
     const { data: session } = useSession();
+    const router = useRouter();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -79,15 +81,22 @@ export default function NotificationDropdown() {
                                 <div 
                                     key={n._id} 
                                     className={`p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer group ${!n.read ? 'bg-[#B8FF3C]/5' : ''}`}
-                                    onClick={() => !n.read && markAsRead(n._id)}
+                                    onClick={() => {
+                                        if (!n.read) markAsRead(n._id);
+                                        if (n.type === 'program_assignment') router.push('/coach-protocol');
+                                        setIsOpen(false);
+                                    }}
                                 >
                                     <div className="flex items-start gap-3">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                                             n.type === 'acceptance' ? 'bg-[#B8FF3C]/20 text-[#B8FF3C]' : 
+                                            n.type === 'program_assignment' ? 'bg-purple-500/20 text-purple-400' : 
                                             n.type === 'request' ? 'bg-blue-500/20 text-blue-400' : 
                                             'bg-slate-500/20 text-slate-400'
                                         }`}>
-                                            {n.type === 'acceptance' ? <Check size={14} /> : <Clock size={14} />}
+                                            {n.type === 'acceptance' ? <Check size={14} /> : 
+                                             n.type === 'program_assignment' ? <Dumbbell size={14} /> :
+                                             <Clock size={14} />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-white leading-snug">{n.title}</p>

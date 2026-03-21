@@ -16,12 +16,16 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['request', 'acceptance', 'message', 'system'],
+        enum: ['request', 'acceptance', 'message', 'program_assignment', 'system'],
         default: 'system'
     },
     read: {
         type: Boolean,
         default: false
+    },
+    metadata: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     createdAt: {
         type: Date,

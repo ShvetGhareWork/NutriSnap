@@ -15,7 +15,7 @@ const NAV_MAIN = [
     { label: "Recipes", icon: BookOpen, href: "/recipes" },
     { label: "Workouts", icon: Dumbbell, href: "/workout" },
     { label: "Physique AI", icon: Eye, href: "/physique-ai" },
-    { label: "AI Coach", icon: MessageCircle, href: "/coach" },
+    { label: "Coach Protocols", icon: Dumbbell, href: "/coach-protocol" },
     { label: "Messages", icon: MessageCircle, href: "/messages" },
     { label: "Find a Coach", icon: UserCircle, href: "/find-coach" },
 ];
@@ -160,7 +160,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const lName = lNames.join(" ");
 
             if (!user || (!user.firstName && fName)) {
-                // Sync of session to store if store is empty or has placeholder name
                 setUser({
                     _id: (session.user as any).id || "1",
                     userId: (session.user as any).id || "1",

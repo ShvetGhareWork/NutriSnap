@@ -73,13 +73,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(onboardingPath, request.url));
     }
 
-    // Role-based path protection (only if onboarding is complete & role is set)
+    // Role-based path protection
     if (onboardingComplete && role) {
-        if (role === 'member' && pathname.startsWith('/coach')) {
+        // Members cannot access coach-only areas
+        // Specifically check for /coach (dashboard) or paths starting with /coach/
+        if (role === 'member' && (pathname === '/coach' || pathname.startsWith('/coach/'))) {
             return NextResponse.redirect(new URL('/dashboard', request.url));
         }
 
-        if (role === 'coach' && pathname.startsWith('/member')) {
+        // Coaches cannot access member-only areas
+        if (role === 'coach' && pathname.startsWith('/member/')) {
             return NextResponse.redirect(new URL('/coach/dashboard', request.url));
         }
     }

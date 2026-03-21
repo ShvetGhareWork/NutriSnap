@@ -5,25 +5,99 @@ const Activity = require('../models/Activity');
 const MemberProfile = require('../models/MemberProfile');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const MealLog = require('../models/MealLog');
 
 // GET /api/coach/clients - Fetch all connected members for a coach
 router.get('/clients/:coachId', async (req, res) => {
     try {
         const relationships = await ClientRelationship.find({ 
             coach: req.params.coachId,
-            status: 'active'
+            status: { $in: ['active', 'inactive'] } // Fetch both active and inactive
         }).populate('member');
 
         const clientData = await Promise.all(relationships.map(async (rel) => {
             const profile = await MemberProfile.findOne({ user: rel.member._id });
+            const latestActivity = await Activity.findOne({ user: rel.member._id }).sort({ createdAt: -1 });
+
+            // Fetch actual logs for the last 7 days for adherence
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const recentLogs = await MealLog.find({
+                userId: rel.member._id,
+                createdAt: { $gte: sevenDaysAgo }
+            }).sort({ createdAt: 1 });
+
+            // Calculate actual adherence score and data
+            const today = new Date().toISOString().split('T')[0];
+            const dailyAdherence = Array(7).fill(0);
+            const dayMap = {}; // mapping date strings to indices 0–6
+            for (let i = 0; i < 7; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                dayMap[d.toISOString().split('T')[0]] = i;
+            }
+
+            recentLogs.forEach(log => {
+                const logDate = new Date(log.createdAt).toISOString().split('T')[0];
+                if (dayMap[logDate] !== undefined && profile?.targetCalories) {
+                    const cals = log.total_calories || log.nutrition?.calories || 0;
+                    dailyAdherence[dayMap[logDate]] += (cals / profile.targetCalories) * 30; // Weighting for scoring
+                }
+            });
+
+            // Map meals for today
+            const todayLogs = recentLogs.filter(log => new Date(log.createdAt).toISOString().split('T')[0] === today);
+            const meals = todayLogs.map(log => ({
+                id: log._id,
+                name: log.food_name || log.foodName,
+                kcal: Math.round(log.total_calories || log.nutrition?.calories || 0),
+                protein: Math.round(log.total_protein || log.nutrition?.protein || 0),
+                status: "logged",
+                emoji: log.mealType === 'breakfast' ? "🥣" : log.mealType === 'lunch' ? "🍗" : "🍽️"
+            }));
+
+            // Handle progress (caloric compliance for today)
+            const totalTodayCals = todayLogs.reduce((sum, l) => sum + (l.total_calories || l.nutrition?.calories || 0), 0);
+            const progress = profile?.targetCalories ? Math.min(Math.round((totalTodayCals / profile.targetCalories) * 100), 100) : 0;
+
+            // Logic for initials
+            const firstName = profile?.firstName || '';
+            const lastName = profile?.lastName || '';
+            const initials = (firstName[0] || '') + (lastName[0] || '') || rel.member.email[0].toUpperCase();
+
+            const avatarColors = ["#a3e635", "#f97316", "#818cf8", "#f43f5e", "#2dd4bf"];
+            const colorIndex = rel.member._id.toString().charCodeAt(0) % avatarColors.length;
+
+            const timeDiff = latestActivity ? (Date.now() - new Date(latestActivity.createdAt).getTime()) / (1000 * 60) : null;
+            const lastActive = timeDiff === null ? "Inactive" :
+                timeDiff < 60 ? `${Math.round(timeDiff)}m ago` :
+                    timeDiff < 1440 ? `${Math.round(timeDiff / 60)}h ago` :
+                        `${Math.round(timeDiff / 1440)}d ago`;
+
             return {
                 id: rel.member._id,
+                initials: initials,
                 name: profile ? `${profile.firstName} ${profile.lastName}` : rel.member.email,
-                email: rel.member.email,
-                status: 'Active',
-                program: profile?.goal || 'General Health',
-                compliance: 85, // Mock for now
-                connectedAt: rel.connectedAt
+                goal: profile ? (({ 'cut': 'WEIGHT LOSS', 'bulk': 'MUSCLE GAIN', 'maintain': 'MAINTENANCE' })[profile.goal] || 'MAINTENANCE') : 'MAINTENANCE',
+                status: rel.status.charAt(0).toUpperCase() + rel.status.slice(1),
+                progress: progress || 0,
+                calories: profile?.targetCalories || 2000,
+                protein: `${profile?.targetProtein || 150}g`,
+                workouts: "N/A", // Still mocked as we don't have workout logs yet
+                lastActive: lastActive,
+                avatarColor: avatarColors[colorIndex],
+                weight: profile?.weightKg ? (profile.weightKg * 2.20462).toFixed(1) : 180,
+                weightDelta: "-0.5 lbs this wk", // Mocked delta
+                bmi: profile?.heightCm && profile?.weightKg ? (profile.weightKg / Math.pow(profile.heightCm / 100, 2)).toFixed(1) : 24.0,
+                bmiLabel: "Calculated",
+                bodyFat: 18.2, // Mocked
+                bodyFatDelta: "Stable",
+                adherenceScore: Math.min(Math.round(dailyAdherence.reduce((a, b) => a + b, 0) / 7), 100),
+                adherenceData: dailyAdherence.map(v => Math.min(v, 100)),
+                tier: "PRO COACHING",
+                joined: new Date(rel.connectedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                meals: meals,
+                coachNote: profile?.experience === 'beginner' ? "Early stage: keep consistent with logging." : "Monitor macros carefully."
             };
         }));
 
@@ -72,18 +146,28 @@ router.get('/activities/:coachId', async (req, res) => {
 // GET /api/coach/stats/:coachId - Fetch aggregate stats for coach
 router.get('/stats/:coachId', async (req, res) => {
     try {
-        const totalClients = await ClientRelationship.countDocuments({ coach: req.params.coachId, status: 'active' });
-        // Simplified mockup for other stats
+        const coachId = req.params.coachId;
+        const Program = require('../models/Program');
+        const Message = require('../models/Message');
+
+        const [totalClients, totalPrograms, totalMessages] = await Promise.all([
+            ClientRelationship.countDocuments({ coach: coachId, status: 'active' }),
+            Program.countDocuments({ coach: coachId }),
+            Message.countDocuments({ senderId: coachId })
+        ]);
+
         res.status(200).json({
             success: true,
             data: {
                 totalClients,
                 activeUsers: totalClients,
-                programs: 12,
-                successRate: '87%'
+                programs: totalPrograms,
+                messages: totalMessages,
+                adherence: "84.2%" // Mocked for now until nutrition is linked
             }
         });
     } catch (error) {
+        console.error('Stats error:', error);
         res.status(500).json({ success: false, error: 'Server error' });
     }
 });
@@ -175,7 +259,8 @@ router.get('/requests/:coachId', async (req, res) => {
             return {
                 id: r._id,
                 name: profile ? `${profile.firstName} ${profile.lastName}` : r.member.email,
-                time: `Requested ${new Date(r.createdAt).toLocaleDateString()}`
+                time: `Requested ${new Date(r.createdAt).toLocaleDateString()}`,
+                profile: profile // Include full profile for coach to view before accepting
             };
         }));
 

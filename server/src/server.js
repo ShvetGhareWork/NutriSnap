@@ -11,6 +11,7 @@ const coachRoutes = require('./routes/coach');
 const activityRoutes = require('./routes/activity');
 const mealLogRoutes = require('./routes/mealLog');
 const chatRoutes = require('./routes/chat');
+const programRoutes = require('./routes/programs');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -94,6 +95,7 @@ app.use('/api/coach', coachRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/meal-log', mealLogRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/programs', programRoutes);
 
 const PORT = process.env.PORT || 5000;
 
