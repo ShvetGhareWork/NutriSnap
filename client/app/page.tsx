@@ -649,7 +649,7 @@ function FinalCTA() {
       </div>
       <div className="relative z-10 text-center max-w-3xl mx-auto">
         <h2 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-          Your transformation<br />starts with one snap.
+          Your transformation<br />starts with one Snap.
         </h2>
         <p className="text-slate-400 mb-10">
           Join 50,000+ athletes who are using AI to optimise their physique.
