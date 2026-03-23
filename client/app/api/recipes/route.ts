@@ -58,10 +58,27 @@ export async function GET(req: NextRequest) {
     }
 
     const ingredientQuery = searchParams.get("ingredient");
+    const ingredientId = searchParams.get("ingredientId");
+
+    if (ingredientId) {
+        try {
+            const res = await fetch(
+                `https://api.spoonacular.com/food/ingredients/${ingredientId}/information?amount=100&unit=g&apiKey=${apiKey}`,
+                { cache: "no-store" }
+            );
+            if (!res.ok) throw new Error(`Spoonacular Ingredient Detail error: ${res.status}`);
+            const data = await res.json();
+            return NextResponse.json(data);
+        } catch (error: any) {
+            console.error("Ingredient Detail API error:", error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+    }
+
     if (ingredientQuery) {
         try {
             const res = await fetch(
-                `https://api.spoonacular.com/food/ingredients/search?apiKey=${apiKey}&query=${ingredientQuery}&number=5`,
+                `https://api.spoonacular.com/food/ingredients/search?apiKey=${apiKey}&query=${ingredientQuery}&number=8`,
                 { cache: "no-store" }
             );
             if (!res.ok) throw new Error(`Spoonacular Ingredient error: ${res.status}`);

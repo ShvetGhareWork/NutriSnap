@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -24,6 +25,11 @@ export default function CoachSidebar() {
     const pathname = usePathname();
     const { isCollapsed, setIsCollapsed, isOpen, setIsOpen } = useSidebar();
     const { coachProfile } = useUserContext();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Safely extract name and initials
     const coachName = coachProfile?.name || 'Coach';
@@ -48,7 +54,7 @@ export default function CoachSidebar() {
                 initial={false}
                 animate={{ 
                     width: isCollapsed ? 80 : 256,
-                    x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024 ? -256 : 0)
+                    x: isOpen ? 0 : (mounted && typeof window !== 'undefined' && window.innerWidth < 1024 ? -256 : 0)
                 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 className={cn(
@@ -58,6 +64,7 @@ export default function CoachSidebar() {
             >
             {/* Collapse Toggle */}
             <button
+                suppressHydrationWarning
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="absolute -right-3 top-8 w-6 h-6 bg-[#13131A] border border-white/[0.06] rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 z-50 transition-colors"
             >
@@ -181,6 +188,7 @@ export default function CoachSidebar() {
                 </Link>
 
                 <button
+                    suppressHydrationWarning
                     onClick={() => signOut({ callbackUrl: '/login' })}
                     title={isCollapsed ? "Sign Out" : undefined}
                     className={cn(

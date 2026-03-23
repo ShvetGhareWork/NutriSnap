@@ -80,4 +80,16 @@ router.put('/notifications/:notificationId/read', async (req, res) => {
     }
 });
 
+// Clear all notifications for user
+router.delete('/notifications/:userId/clear', async (req, res) => {
+    try {
+        const Notification = require('../models/Notification');
+        await Notification.deleteMany({ user: req.params.userId });
+        res.status(200).json({ success: true, message: 'Notifications cleared' });
+    } catch (error) {
+        console.error('Clear notifications error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 module.exports = router;

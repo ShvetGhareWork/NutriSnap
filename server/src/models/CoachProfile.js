@@ -17,6 +17,8 @@ const coachProfileSchema = new mongoose.Schema({
     notifyNewClient: { type: Boolean, default: true },
     notifyProgress: { type: Boolean, default: true },
     notifyMessages: { type: Boolean, default: true },
+    paidChatEnabled: { type: Boolean, default: false }, // Option to charge for initial connection/chat
+    chatFeeINR: { type: Number, default: 500 }, // Fee in INR for each connection if enabled
 }, { timestamps: true });
 
 module.exports = mongoose.model('CoachProfile', coachProfileSchema);

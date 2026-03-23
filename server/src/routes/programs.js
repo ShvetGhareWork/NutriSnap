@@ -69,10 +69,12 @@ router.post('/assign', async (req, res) => {
                 coach: coachId
             });
             
+            const { createNotification } = require('../utils/notificationService');
+
             // Create notification for client
             const program = await Program.findById(programId);
-            await Notification.create({
-                user: clientId,
+            await createNotification({
+                userId: clientId,
                 title: 'New Program Assigned',
                 message: `Coach has assigned you the "${program.title}" program!`,
                 type: 'program_assignment',
@@ -82,7 +84,7 @@ router.post('/assign', async (req, res) => {
             // Activity log
             await Activity.create({
                 user: coachId,
-                type: 'goal_reached', // Should use more descriptive type?
+                type: 'goal_reached', 
                 content: `assigned program "${program.title}" to a client`,
                 metadata: { memberId: clientId, programId }
             });

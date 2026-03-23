@@ -182,14 +182,15 @@ export default function AnalyzeMeal() {
 
     // ── Load log from backend on mount ────────────────────────────────────────
     const fetchLog = useCallback(async () => {
+        if (!session?.user?.id) return;
         setLogLoading(true);
         try {
-            const res = await fetch("/api/meal-log");
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/meal-log/user/${session.user.id}`);
             if (res.ok) {
-                const data = await res.json();
+                const json = await res.json();
+                const data = json.data || [];
                 // Since this page handles fresh fetching, we inject it into the global store
-                // in reality you would fetch this on App load or Dashboard
-                // For safety, we only push new ones to avoid duplicates if naive
                 data.forEach((l: any) => {
                    const id = l._id || l.id;
                    if (!useGlobalStore.getState().foodLog.find((item) => {
@@ -213,7 +214,7 @@ export default function AnalyzeMeal() {
         } finally {
             setLogLoading(false);
         }
-    }, [addFoodLog]);
+    }, [addFoodLog, session]);
 
     useEffect(() => {
         setMounted(true);
@@ -269,56 +270,63 @@ export default function AnalyzeMeal() {
 
     // ── Save to backend log ────────────────────────────────────────────────────
     const saveToLog = async () => {
-        if (!result || !liveNutrition || saving) return;
+        if (!result || !liveNutrition || saving || !session?.user?.id) return;
         setSaving(true);
 
-        const entry: LogEntry = {
-            id: Date.now().toString(),
-            imageUrl,  // Note: blob URLs don't persist across sessions
-            foodName: result.foodName,
-            grams: adjGrams,
-            servings: adjServings,
-            mealType: adjMealType,
-            nutrition: liveNutrition,
-            loggedAt: nowTime(),
-            date: today(),
-        };
+        const formData = new FormData();
+        formData.append("userId", session.user.id);
+        formData.append("food_name", result.foodName);
+        formData.append("date", today());
+        formData.append("mealType", adjMealType.toLowerCase());
+        formData.append("grams", adjGrams.toString());
+        formData.append("servings", adjServings.toString());
+        
+        // Detailed nutrition as JSON string for easy backend parsing
+        formData.append("nutrition", JSON.stringify(liveNutrition));
+        
+        // Also keep top-level for backwards compatibility if needed
+        formData.append("total_calories", liveNutrition.calories.toString());
+        formData.append("total_protein", liveNutrition.protein.toString());
+        formData.append("total_carbs", liveNutrition.carbs.toString());
+        formData.append("total_fat", liveNutrition.fat.toString());
+
+        if (imageFile) {
+            formData.append("image", imageFile);
+        }
 
         try {
-            const res = await fetch("/api/meal-log", {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${apiBase}/api/meal-log`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(entry),
+                body: formData,
             });
 
             if (!res.ok) throw new Error("Save failed");
 
+            const json = await res.json();
+            const savedLog = json.data;
+
             // Push formatted entry to Zustand
-            if (res.ok) {
-                addFoodLog({
-                    ...entry,
-                    _id: entry.id,
-                    food_name: entry.foodName,
-                    total_calories: entry.nutrition.calories,
-                    total_protein: entry.nutrition.protein,
-                    total_carbs: entry.nutrition.carbs,
-                    total_fat: entry.nutrition.fat,
-                    createdAt: new Date().toISOString(),
-                } as any);
+            addFoodLog({
+                ...savedLog,
+                _id: savedLog._id,
+                food_name: savedLog.food_name,
+                total_calories: savedLog.total_calories,
+                total_protein: savedLog.total_protein,
+                total_carbs: savedLog.total_carbs,
+                total_fat: savedLog.total_fat,
+            } as any);
 
-                // Log activity for coach
-                if (session?.user?.id) {
-                    const { logActivity } = await import('@/lib/activity');
-                    logActivity(
-                        session.user.id,
-                        'meal_log',
-                        `logged a meal: ${entry.foodName}`,
-                        { note: `"${entry.foodName} — ${entry.nutrition.calories} kcal"` }
-                    );
-                }
+            // Log activity for coach
+            const { logActivity } = await import('@/lib/activity');
+            logActivity(
+                session.user.id,
+                'meal_log',
+                `logged a meal: ${savedLog.food_name}`,
+                { note: `"${savedLog.food_name} — ${savedLog.total_calories} kcal"` }
+            );
 
-                setSaved(true);
-            }
+            setSaved(true);
             setTimeout(() => setActiveTab("log"), 800);
         } catch (err) {
             console.error("Failed to save", err);
@@ -331,11 +339,11 @@ export default function AnalyzeMeal() {
     // ── Delete entry ───────────────────────────────────────────────────────────
     const deleteEntryFromLog = async (id: string) => {
         try {
-            await fetch(`/api/meal-log?id=${id}`, { method: "DELETE" });
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+            await fetch(`${apiBase}/api/meal-log/${id}`, { method: "DELETE" });
             deleteFoodLog(id);
         } catch (err) {
             console.error("Failed to delete", err);
-            fetchLog(); // re-fetch to restore correct state if failed
         }
     };
 

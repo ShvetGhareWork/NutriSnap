@@ -58,6 +58,8 @@ export interface ICoachProfile {
     onMissedCheckin: boolean;
     weeklyDigest: boolean;
   };
+  paidChatEnabled: boolean;
+  chatFeeINR: number;
 }
 
 // ===== MEAL LOG =====

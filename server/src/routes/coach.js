@@ -198,12 +198,17 @@ router.post('/request', async (req, res) => {
         });
 
         // Create Notification for coach
+        const { createNotification } = require('../utils/notificationService');
         const member = await User.findById(memberId);
-        await Notification.create({
-            user: coachId,
+        await createNotification({
+            userId: coachId,
             title: 'New Coach Request',
-            message: `${member ? member.email : 'A member'} has requested you as their coach.`,
-            type: 'request'
+            message: `${member ? (member.firstName || member.email) : 'A member'} has requested you as their coach.`,
+            type: 'request',
+            metadata: {
+                relationshipId: request._id,
+                memberId: memberId
+            }
         });
 
         res.status(201).json({ success: true, data: request });
@@ -226,18 +231,22 @@ router.post('/accept', async (req, res) => {
 
         // Log activity for coach feed
         await Activity.create({
-            user: rel.member._id,
+            user: rel.member,
             type: 'invite_accepted',
             content: 'accepted invite and connected',
             metadata: { coachId: rel.coach }
         });
 
         // Create Notification for member
-        await Notification.create({
-            user: rel.member._id,
+        const { createNotification } = require('../utils/notificationService');
+        await createNotification({
+            userId: rel.member,
             title: 'Coach Request Accepted',
             message: 'Your coach has accepted your request. You are now connected!',
-            type: 'acceptance'
+            type: 'acceptance',
+            metadata: {
+                coachId: rel.coach
+            }
         });
 
         res.status(200).json({ success: true, data: rel });

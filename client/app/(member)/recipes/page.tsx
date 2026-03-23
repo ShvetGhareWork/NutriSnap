@@ -5,7 +5,7 @@ import {
     Search, SlidersHorizontal, ChevronRight, ChevronLeft,
     FlaskConical, CalendarDays, BarChart3, Shuffle, Zap,
     Flame, Clock, Star, BookOpen, Filter, X, RefreshCw, AlertCircle,
-    Heart, Trash2, CalendarPlus, PieChart, Check, Minus, Plus
+    Heart, Trash2, CalendarPlus, PieChart, Check, Minus, Plus, Play, Youtube
 } from "lucide-react";
 import { useGlobalStore } from "@/store/useGlobalStore";
 
@@ -23,6 +23,7 @@ interface Recipe {
     readyInMinutes: number;
     rating: number;
     diets: string[];
+    videoUrl?: string;
 }
 
 interface PlannedMeal {
@@ -82,8 +83,15 @@ function RecipeCard({ recipe, onClick, isFavorite, onToggleFavorite }: {
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-black/65 backdrop-blur-sm text-white text-xs font-black px-2.5 py-1 rounded-full">
                     <Flame size={10} className="text-[#B8FF3C]" /> {Math.round(recipe.calories)} kcal
                 </div>
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-black/65 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-full">
-                    <Clock size={9} className="text-slate-400" /> {recipe.readyInMinutes}m
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full border border-white/5 shadow-lg">
+                    <div className="flex items-center gap-1.5 border-r border-white/15 pr-2.5">
+                        <Clock size={10} className="text-slate-400" /> 
+                        <span>{recipe.readyInMinutes}m</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-red-500 animate-pulse">
+                        <Play size={8} fill="currentColor" /> 
+                        <span className="tracking-widest">VIDEO</span>
+                    </div>
                 </div>
 
                 {/* Favorite Button */}
@@ -91,11 +99,18 @@ function RecipeCard({ recipe, onClick, isFavorite, onToggleFavorite }: {
                     onClick={(e) => { e.stopPropagation(); onToggleFavorite?.(e); }}
                     className={`absolute bottom-2.5 right-2.5 p-2 rounded-xl backdrop-blur-md border transition-all ${isFavorite
                         ? 'bg-red-500/20 border-red-500/40 text-red-500'
-                        : 'bg-black/40 border-white/10 text-white/60 hover:text-white hover:bg-black/60'
+                        : 'bg-black/40 border-white/10 text-white/60 hover:text-white hover:bg-black/60 shadow-lg'
                         }`}
                 >
                     <Heart size={14} fill={isFavorite ? "currentColor" : "none"} />
                 </button>
+
+                {/* Hover Play Overlay */}
+                <div className="absolute inset-0 bg-red-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+                        <Play size={20} fill="white" className="text-white ml-1" />
+                    </div>
+                </div>
             </div>
             <div className="p-3.5">
                 <div className="flex items-start justify-between gap-2 mb-3">
@@ -711,7 +726,71 @@ export default function RecipesPage() {
                                     )}
                                 </div>
 
-                                <div className="flex flex-col sm:flex-row gap-4 pt-6">
+                                {/* Video Lecture Section - Re-engineered for Alignment & Reliability */}
+                                <div className="pt-6">
+                                    <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-5 bg-red-600 rounded-full" />
+                                            Video Lecture
+                                        </div>
+                                        <span className="text-[10px] bg-red-600/10 text-red-500 px-3 py-1 rounded-full font-black border border-red-500/20 tracking-widest uppercase">Premium Masterclass</span>
+                                    </h3>
+                                    
+                                    <a 
+                                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedRecipe.title + ' recipe lecture tutorial step by step')}`} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="block relative aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl group cursor-pointer bg-[#0A0A0F]"
+                                    >
+                                        {/* Thumbnail Background */}
+                                        <div className="absolute inset-0">
+                                            <img 
+                                                src={selectedRecipe.image} 
+                                                className="w-full h-full object-cover opacity-30 blur-[1px] scale-110 group-hover:scale-100 transition-transform duration-700" 
+                                                alt="" 
+                                                onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=80"; }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                                        </div>
+                                        
+                                        {/* Performance Overlay */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+                                            <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-2xl shadow-red-600/50 group-hover:scale-110 transition-transform duration-300">
+                                                <Play size={24} fill="white" className="text-white ml-1" />
+                                            </div>
+                                            <div className="text-center px-6">
+                                                <p className="text-white font-black text-xl tracking-tight group-hover:text-red-400 transition-colors">Start Masterclass</p>
+                                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-1 space-x-2">
+                                                    <span>Play Tutorial</span>
+                                                    <span className="opacity-30">•</span>
+                                                    <span>HD Quality</span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Stats Bar */}
+                                        <div className="absolute bottom-5 left-6 right-6 flex items-center justify-between z-10">
+                                            <div className="flex items-center gap-2 text-xs text-white font-black bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 uppercase tracking-[0.1em]">
+                                                Masterclass Level: Pro
+                                            </div>
+                                            <div className="flex items-center gap-2 text-xs text-red-500 font-black bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">
+                                                <Clock size={14} /> ~{selectedRecipe.readyInMinutes || 15} MINS
+                                            </div>
+                                        </div>
+                                    </a>
+                                    
+                                    <div className="flex items-center justify-between mt-4 px-1">
+                                        <p className="text-[10px] text-slate-500 font-medium italic">
+                                            *Curated {selectedRecipe.title} session from top culinary lecturers.
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                                            <span className="text-[10px] text-slate-400 font-bold uppercase">Lecture Online</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-4 pt-10">
                                     {addingToDay === selectedRecipe ? (
                                         <div className="bg-[#13131A] border border-[#B8FF3C]/30 rounded-2xl p-4 mt-2 mb-2 animate-in fade-in slide-in-from-bottom-2">
                                             <div className="flex justify-between items-center mb-3">
@@ -728,10 +807,20 @@ export default function RecipesPage() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <button onClick={() => setAddingToDay(selectedRecipe)}
-                                            className="flex-1 flex items-center justify-center gap-2 bg-[#B8FF3C] text-[#0A0A0F] px-4 py-3 rounded-2xl text-sm font-black hover:bg-[#d4ff6e] transition-all shadow-lg shadow-[#B8FF3C]/20 border border-[#B8FF3C]">
-                                            <CalendarPlus size={16} /> Add to Plan
-                                        </button>
+                                        <div className="flex-1 flex flex-col sm:flex-row gap-3">
+                                            <button onClick={() => setAddingToDay(selectedRecipe)}
+                                                className="flex-1 flex items-center justify-center gap-2 bg-[#B8FF3C] text-[#0A0A0F] px-4 py-3 rounded-2xl text-sm font-black hover:bg-[#d4ff6e] transition-all shadow-lg shadow-[#B8FF3C]/20 border border-[#B8FF3C]">
+                                                <CalendarPlus size={16} /> Add to Plan
+                                            </button>
+                                            <a 
+                                                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedRecipe.title + ' recipe tutorial')}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="flex-1 flex items-center justify-center gap-2 bg-slate-800 text-white border border-white/10 px-4 py-3 rounded-2xl text-sm font-black hover:bg-slate-700 transition-all shadow-lg group"
+                                            >
+                                                <Youtube size={16} className="text-red-500 transition-colors" /> Full Tutorial List
+                                            </a>
+                                        </div>
                                     )}
                                     <button onClick={() => toggleFavorite({
                                         id: selectedRecipe.id,
@@ -894,10 +983,13 @@ function IngredientLookupTool() {
     const [q, setQ] = useState("");
     const [results, setResults] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     const search = async () => {
         if (!q) return;
         setLoading(true);
+        setSelectedDetail(null);
         try {
             const res = await fetch(`/api/recipes?ingredient=${q}`);
             const data = await res.json();
@@ -909,41 +1001,107 @@ function IngredientLookupTool() {
         }
     };
 
+    const fetchDetail = async (id: number) => {
+        setDetailLoading(true);
+        try {
+            const res = await fetch(`/api/recipes?ingredientId=${id}`);
+            const data = await res.json();
+            setSelectedDetail(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex gap-2">
                 <input
                     value={q}
                     onChange={e => setQ(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && search()}
                     placeholder="Search ingredient (e.g. apple)"
-                    className="flex-1 bg-[#0A0A0F] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#B8FF3C]/30 transition-all font-medium"
+                    className="flex-1 bg-[#0A0A0F] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#B8FF3C]/30 transition-all font-medium"
                 />
-                <button onClick={search} className="bg-[#B8FF3C] text-[#0A0A0F] px-5 py-2.5 rounded-xl font-black text-sm hover:scale-105 transition-all active:scale-95 shadow-lg shadow-[#B8FF3C]/10">Search</button>
+                <button 
+                  onClick={search} 
+                  disabled={loading}
+                  className="bg-[#B8FF3C] text-[#0A0A0F] px-6 py-3 rounded-xl font-black text-sm hover:scale-105 transition-all active:scale-95 shadow-lg shadow-[#B8FF3C]/10 disabled:opacity-50 disabled:scale-100"
+                >
+                  {loading ? <RefreshCw size={16} className="animate-spin" /> : "Search"}
+                </button>
             </div>
-            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-3">
-                        <RefreshCw className="text-[#B8FF3C] animate-spin" size={24} />
-                        <span className="text-slate-500 text-xs font-bold">Scanning nutrients...</span>
-                    </div>
-                ) : results.length > 0 ? (
-                    results.map((r: any) => (
-                        <div key={r.id} className="flex items-center justify-between bg-[#13131A] p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5">
-                                    <img src={`https://spoonacular.com/cdn/ingredients_100x100/${r.image}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                </div>
-                                <span className="text-white text-sm font-bold capitalize">{r.name}</span>
-                            </div>
-                            <button className="text-[10px] text-[#B8FF3C] font-black uppercase tracking-wider bg-[#B8FF3C]/10 px-3 py-1.5 rounded-lg border border-[#B8FF3C]/20 hover:bg-[#B8FF3C]/20 transition-all">Details</button>
+
+            {selectedDetail ? (
+                <div className="bg-[#13131A] border border-[#B8FF3C]/20 p-5 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => setSelectedDetail(null)} className="text-slate-500 hover:text-white transition-colors p-1"><ChevronLeft size={18} /></button>
+                            <h3 className="text-white font-black text-lg capitalize">{selectedDetail.name}</h3>
                         </div>
-                    ))
-                ) : q && !loading ? (
-                    <div className="text-center py-10 text-slate-600 text-xs font-medium">No ingredients found.</div>
-                ) : (
-                    <div className="text-center py-10 text-slate-600 text-xs font-medium">Search for an ingredient to view nutrition.</div>
-                )}
-            </div>
+                        <span className="text-[10px] text-slate-500 font-bold bg-white/5 px-2 py-1 rounded-full uppercase tracking-widest">Per 100g</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        {[
+                            { label: "Calories", val: `${Math.round(selectedDetail.nutrition?.nutrients.find((n: any) => n.name === 'Calories')?.amount || 0)} kcal`, color: "text-[#B8FF3C]", icon: Flame },
+                            { label: "Protein", val: `${Math.round(selectedDetail.nutrition?.nutrients.find((n: any) => n.name === 'Protein')?.amount || 0)}g`, color: "text-[#B8FF3C]", icon: Zap },
+                            { label: "Carbs", val: `${Math.round(selectedDetail.nutrition?.nutrients.find((n: any) => n.name === 'Carbohydrates')?.amount || 0)}g`, color: "text-orange-400", icon: BarChart3 },
+                            { label: "Fat", val: `${Math.round(selectedDetail.nutrition?.nutrients.find((n: any) => n.name === 'Fat')?.amount || 0)}g`, color: "text-yellow-400", icon: PieChart },
+                        ].map((n, i) => (
+                            <div key={i} className="bg-[#0A0A0F] border border-white/5 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                                <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1.5">{n.label}</div>
+                                <div className={`text-xl font-black ${n.color}`}>{n.val}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button onClick={() => setSelectedDetail(null)} className="w-full py-3 bg-white/5 text-slate-400 text-xs font-black rounded-xl hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest">Back to Results</button>
+                </div>
+            ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3">
+                            <div className="relative">
+                                <Search className="text-slate-800" size={40} />
+                                <RefreshCw className="text-[#B8FF3C] animate-spin absolute inset-0 m-auto" size={16} />
+                            </div>
+                            <span className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">Scanning Global Database...</span>
+                        </div>
+                    ) : results.length > 0 ? (
+                        results.map((r: any) => (
+                            <div key={r.id} className="flex items-center justify-between bg-[#13131A] p-3.5 rounded-2xl border border-white/5 hover:border-[#B8FF3C]/20 transition-all group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/[0.03] border border-white/5 p-1">
+                                        <img src={`https://spoonacular.com/cdn/ingredients_100x100/${r.image}`} className="w-full h-full object-contain group-hover:scale-110 transition-transform" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&q=80"; }} />
+                                    </div>
+                                    <span className="text-white text-sm font-black capitalize tracking-tight">{r.name}</span>
+                                </div>
+                                <button 
+                                    onClick={() => fetchDetail(r.id)}
+                                    disabled={detailLoading}
+                                    className="text-[10px] text-[#B8FF3C] font-black uppercase tracking-widest bg-[#B8FF3C]/10 px-4 py-2.5 rounded-xl border border-[#B8FF3C]/20 hover:bg-[#B8FF3C] hover:text-[#0A0A0F] transition-all shadow-lg active:scale-95"
+                                >
+                                    {detailLoading ? <RefreshCw size={12} className="animate-spin" /> : "Details"}
+                                </button>
+                            </div>
+                        ))
+                    ) : q && !loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                            <AlertCircle size={32} className="text-slate-700 mb-3" />
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">No ingredients matched your query</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 bg-white/[0.03] rounded-3xl flex items-center justify-center mb-4 border border-white/5">
+                                <FlaskConical size={24} className="text-slate-600" />
+                            </div>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest leading-relaxed max-w-[180px]">Search for an ingredient above to view macros &amp; facts</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

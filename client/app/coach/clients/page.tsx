@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -159,7 +161,16 @@ function ClientDetail({ client, onClose }: { client: Client; onClose: () => void
             <div className="flex items-center gap-4 px-5 py-4 border-b border-[#2a3a10] shrink-0">
                 <Avatar initials={client.initials} color={client.avatarColor} size="lg" />
                 <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-white truncate">{client.name}</h3>
+                    <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-lg font-bold text-white truncate">{client.name}</h3>
+                        <Link 
+                            href={`/coach/messages?memberId=${client.id}`}
+                            className="p-2 rounded-xl bg-[#a3e635] text-black hover:scale-105 transition-all shadow-lg shadow-[#a3e635]/20 flex items-center justify-center"
+                            title="Message Client"
+                        >
+                            <MessageSquare size={16} />
+                        </Link>
+                    </div>
                     <p className="text-[11px] text-gray-500 mt-0.5 mb-2">Joined: {client.joined}</p>
                     <div className="flex flex-wrap gap-1.5">
                         <span className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#a3e635]/15 text-[#a3e635] border border-[#a3e635]/30">
@@ -268,7 +279,16 @@ function ClientCard({ client, selected, onClick }: {
 
             {/* Footer */}
             <div className="flex justify-between items-center pt-2 border-t border-[#1a2208]">
-                <span className="text-[10px] text-gray-600">Last active: {client.lastActive}</span>
+                <div className="flex items-center gap-2">
+                   <Link 
+                     href={`/coach/messages?memberId=${client.id}`}
+                     onClick={(e) => e.stopPropagation()}
+                     className="p-1.5 rounded-lg bg-white/5 text-[#a3e635] hover:bg-[#a3e635]/10 active:scale-95 transition-all flex items-center justify-center"
+                   >
+                     <MessageSquare size={14} />
+                   </Link>
+                   <span className="text-[10px] text-gray-600">Last active: {client.lastActive}</span>
+                </div>
                 <span className="text-[#a3e635] text-[10px] font-semibold">View Profile →</span>
             </div>
         </div>
@@ -299,10 +319,11 @@ function CardSkeleton() {
 
 export default function ClientsPage() {
     const [clients, setClients] = useState<Client[]>([]);
+    const [pendingRequests, setPendingRequests] = useState<any[]>([]);
     const [selected, setSelected] = useState<Client | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [filter, setFilter] = useState<"All" | "Active">("All");
+    const [filter, setFilter] = useState<"All" | "Active" | "Pending">("All");
     const [search, setSearch] = useState("");
     const [panelOpen, setPanelOpen] = useState(false);
 
@@ -314,15 +335,23 @@ export default function ClientsPage() {
             setIsLoading(true);
             try {
                 const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                
+                // Fetch active clients
                 const res = await fetch(`${apiBase}/api/coach/clients/${session.user.id}`);
                 const data = await res.json();
                 if (data.success && data.data) {
                     setClients(data.data);
-                } else {
-                    setError("Failed to load clients");
                 }
+
+                // Fetch pending requests
+                const reqRes = await fetch(`${apiBase}/api/coach/requests/${session.user.id}`);
+                const reqData = await reqRes.json();
+                if (reqData.success && reqData.data) {
+                    setPendingRequests(reqData.data);
+                }
+
             } catch {
-                setError("Failed to fetch clients from server");
+                setError("Failed to fetch data from server");
             } finally {
                 setIsLoading(false);
             }
@@ -330,7 +359,8 @@ export default function ClientsPage() {
     }, [session]);
 
     const filtered = clients.filter((c) => {
-        const matchFilter = filter === "All" || c.status === "Active";
+        const matchFilter = filter === "All" || (filter === "Active" && c.status === "Active");
+        if (filter === "Pending") return false; // Handled separately
         const matchSearch =
             search === "" ||
             c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -339,6 +369,7 @@ export default function ClientsPage() {
     });
 
     const activeCount = clients.filter((c) => c.status === "Active").length;
+    const pendingCount = pendingRequests.length;
 
     const handleSelect = (c: Client) => { setSelected(c); setPanelOpen(true); };
     const closePanel = () => setPanelOpen(false);
@@ -394,17 +425,22 @@ export default function ClientsPage() {
                             />
                         </div>
                         <div className="flex gap-2 shrink-0">
-                            {(["All", "Active"] as const).map((f) => (
+                            {(["All", "Active", "Pending"] as const).map((f) => (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
-                                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all
+                                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative
                                         ${filter === f
                                             ? "bg-[#a3e635] text-black shadow-lg shadow-[#a3e635]/20"
                                             : "bg-[#111a05] border border-[#2a3a10] text-gray-400 hover:text-white"
                                         }`}
                                 >
                                     {f}
+                                    {f === 'Pending' && pendingCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-[#0d1408]">
+                                            {pendingCount}
+                                        </span>
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -422,6 +458,63 @@ export default function ClientsPage() {
                             <button onClick={() => window.location.reload()} className="text-[#a3e635] text-sm font-bold hover:underline">
                                 Try again
                             </button>
+                        </div>
+                    ) : filter === 'Pending' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {pendingRequests.length === 0 ? (
+                                <div className="col-span-full py-20 flex flex-col items-center gap-3 border-2 border-dashed border-[#2a3a10] rounded-2xl">
+                                    <span className="text-4xl opacity-30">📬</span>
+                                    <p className="text-sm text-gray-500">No pending coach requests.</p>
+                                </div>
+                            ) : (
+                                pendingRequests.map(req => (
+                                    <div key={req.id} className="bg-[#13131A] border border-[#2a3a10] p-6 rounded-3xl group hover:border-[#B8FF3C]/30 transition-all flex flex-col justify-between">
+                                        <div className="flex items-start gap-4 mb-6">
+                                            <div className="w-16 h-16 rounded-2xl bg-[#B8FF3C]/10 flex items-center justify-center text-[#B8FF3C] text-2xl font-black border border-[#B8FF3C]/20">
+                                                {req.name?.[0] || 'U'}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-black text-white">{req.name}</h3>
+                                                <p className="text-xs text-slate-500 mt-1">{req.time}</p>
+                                                <div className="mt-2 text-[10px] bg-white/5 inline-block px-2 py-0.5 rounded text-slate-400 font-bold uppercase tracking-wider">Requested Coach</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-[#0A0A0F] p-3 rounded-2xl border border-white/5">
+                                                    <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Goal</div>
+                                                    <div className="text-xs font-bold text-white uppercase">{req.profile?.goal || 'Maintenance'}</div>
+                                                </div>
+                                                <div className="bg-[#0A0A0F] p-3 rounded-2xl border border-white/5">
+                                                    <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Weight</div>
+                                                    <div className="text-xs font-bold text-white">{req.profile?.weightKg || '??'} kg</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={async () => {
+                                                        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                                                        await fetch(`${apiBase}/api/coach/accept`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ relationshipId: req.id })
+                                                        });
+                                                        window.location.reload();
+                                                    }}
+                                                    className="flex-1 py-3 bg-[#B8FF3C] text-[#0A0A0F] rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#B8FF3C]/10"
+                                                >
+                                                    Accept
+                                                </button>
+                                                <button className="flex-1 py-3 bg-white/5 text-slate-400 border border-white/5 rounded-2xl font-black text-sm hover:bg-white/10 transition-all uppercase tracking-widest">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="py-20 flex flex-col items-center gap-3 border-2 border-dashed border-[#2a3a10] rounded-2xl">

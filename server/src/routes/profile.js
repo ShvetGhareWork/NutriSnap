@@ -18,6 +18,7 @@ router.get('/member/:userId', async (req, res) => {
 router.put('/member/:userId', async (req, res) => {
     try {
         const body = req.body;
+        console.log('Update member profile body:', body);
         const profile = await MemberProfile.findOneAndUpdate(
             { user: req.params.userId },
             { ...body, user: req.params.userId },
@@ -43,6 +44,7 @@ router.get('/coach/:userId', async (req, res) => {
 router.put('/coach/:userId', async (req, res) => {
     try {
         const body = req.body;
+        console.log('Update coach profile body:', body);
         const profile = await CoachProfile.findOneAndUpdate(
             { user: req.params.userId },
             { ...body, user: req.params.userId },

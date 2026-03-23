@@ -9,15 +9,23 @@ const router = express.Router();
 router.get('/', async (req, res) => {
     try {
         const { userId } = req.query;
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'User ID required' });
+        console.log("DEBUG: GET /api/chat called with userId:", userId);
+        
+        if (!userId || userId === 'undefined') {
+            return res.status(400).json({ success: false, error: 'Valid User ID required' });
         }
 
-        const chats = await Chat.find({ participants: userId })
-            .populate('participants', 'email role firstName lastName')
-            .sort({ updatedAt: -1 });
+        const mongoose = require('mongoose');
+        const userObjId = new mongoose.Types.ObjectId(userId);
 
-        res.status(200).json({ success: true, data: chats });
+        const chats = await Chat.find({ 
+            participants: { $in: [userObjId, userId] } 
+        })
+        .populate('participants', 'email role firstName lastName')
+        .sort({ updatedAt: -1 });
+
+        console.log(`DEBUG: Found ${chats.length} chats for user ${userId}`);
+        res.status(200).json({ success: true, count: chats.length, data: chats });
     } catch (error) {
         console.error('Fetch chats error:', error);
         res.status(500).json({ success: false, error: 'Server error' });
@@ -33,9 +41,9 @@ router.post('/connect', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Member and Coach IDs are required' });
         }
 
-        // Check if chat already exists
+        // Check if 1-to-1 chat already exists between exactly these two
         let chat = await Chat.findOne({
-            participants: { $all: [memberId, coachId] }
+            participants: { $all: [memberId, coachId], $size: 2 }
         });
 
         if (!chat) {

@@ -29,6 +29,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
             socketInstance.on("connect", () => {
                 console.log("Socket connected:", socketInstance.id);
                 setIsConnected(true);
+                // Join user's individual room for targeted notifications
+                socketInstance.emit("join_user", session.user.id);
             });
 
             socketInstance.on("disconnect", () => {
