@@ -69,6 +69,7 @@ interface GlobalStoreState {
     setUser: (user: IMemberProfile | null) => void;
     
     // Food Log
+    setFoodLog: (logs: IMealLog[]) => void;
     addFoodLog: (log: IMealLog) => void;
     updateFoodLog: (id: string, log: IMealLog) => void;
     deleteFoodLog: (id: string) => void;
@@ -95,6 +96,9 @@ interface GlobalStoreState {
 
     // Daily totals calculated from foodLog and completedRecipes for a given date
     getDailyTotals: (dateStr: string) => { calories: number; protein: number; carbs: number; fat: number };
+    
+    // Auth
+    clearStore: () => void;
 }
 
 export const useGlobalStore = create<GlobalStoreState>()(
@@ -116,6 +120,13 @@ export const useGlobalStore = create<GlobalStoreState>()(
 
             setUser: (user) => set({ user }),
             
+            clearStore: () => set({
+                user: null, foodLog: [], completedRecipes: [],
+                mealPlan: [], waterLog: [], reminders: [],
+                recipes: [], favoriteRecipes: []
+            }),
+            
+            setFoodLog: (logs) => set({ foodLog: logs }),
             addFoodLog: (log) => set((state) => ({ foodLog: [...state.foodLog, log] })),
             updateFoodLog: (id, updatedLog) => set((state) => ({
                 foodLog: state.foodLog.map(log => log._id === id ? updatedLog : log)

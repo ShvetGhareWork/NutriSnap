@@ -125,6 +125,10 @@ body {
 ::-webkit-scrollbar-thumb { background: rgba(184, 255, 60, 0.3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(184, 255, 60, 0.6); }
 
+/* Hide scrollbar for specific utility */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* ===== SELECTION ===== */
 ::selection { background: rgba(184, 255, 60, 0.25); color: #fff; }
 

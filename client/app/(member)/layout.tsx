@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Zap, LayoutDashboard, Camera, BookOpen, Dumbbell, Eye, UserCircle, Settings, Bell, MessageCircle, LogOut, Menu, X, ChevronLeft } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -92,10 +93,10 @@ function Sidebar({
                     {NAV_MAIN.map(({ label, icon: Icon, href }) => {
                         const active = pathname === href;
                         return (
-                            <a key={label} href={href} title={label} className={linkClass(active)}>
+                            <Link key={label} href={href} title={label} className={linkClass(active)}>
                                 <Icon size={17} className="flex-shrink-0" />
                                 <span className={`whitespace-nowrap ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
-                            </a>
+                            </Link>
                         );
                     })}
                 </nav>
@@ -106,13 +107,16 @@ function Sidebar({
                         Account
                     </p>
                     {NAV_ACCOUNT.map(({ label, icon: Icon, href }) => (
-                        <a key={label} href={href} title={label} className={linkClass(false)}>
+                        <Link key={label} href={href} title={label} className={linkClass(false)}>
                             <Icon size={17} className="flex-shrink-0" />
                             <span className={`whitespace-nowrap ${collapsed ? "lg:hidden" : ""}`}>{label}</span>
-                        </a>
+                        </Link>
                     ))}
                     <button
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={() => {
+                            useGlobalStore.getState().clearStore();
+                            signOut({ callbackUrl: "/login" });
+                        }}
                         title="Logout"
                         className={`w-full flex items-center gap-3 py-2.5 rounded-xl text-sm font-medium mt-0.5 text-red-500/70 hover:text-red-400 hover:bg-red-500/10 transition-all text-left ${collapsed ? "lg:justify-center lg:px-0" : "px-3"}`}
                     >
@@ -211,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                         <div className="flex items-center gap-2 sm:gap-3">
                             <NotificationDropdown />
-                            <div className="flex items-center gap-2 bg-[#13131A] border border-white/[0.08] rounded-xl px-2.5 py-1.5 cursor-pointer hover:border-white/15 transition-colors">
+                            <Link href="/profile" className="flex items-center gap-2 bg-[#13131A] border border-white/[0.08] rounded-xl px-2.5 py-1.5 cursor-pointer hover:border-white/15 transition-colors">
                                 <div className="hidden sm:block text-right">
                                     <p className="text-xs font-bold text-white leading-none">{userName}</p>
                                     <p className="text-[10px] text-[#B8FF3C] mt-0.5">Poweruser</p>
@@ -219,7 +223,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <div className="w-7 h-7 bg-gradient-to-br from-[#B8FF3C] to-[#10b981] rounded-lg flex items-center justify-center text-[#0A0A0F] font-black text-xs flex-shrink-0">
                                     {initials}
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </header>

@@ -15,6 +15,7 @@ const exerciseRoutes = require('./routes/exerciseRoutes');
 const workoutRoutes = require('./routes/workoutRoutes');
 const programsRoutes = require('./routes/programs');
 const statsRoutes = require('./routes/stats');
+const paymentRoutes = require('./routes/payment');
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -132,6 +133,7 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/workouts', workoutRoutes);
 app.use('/api/programs', programsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

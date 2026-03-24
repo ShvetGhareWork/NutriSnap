@@ -83,6 +83,18 @@ router.put('/notifications/:notificationId/read', async (req, res) => {
     }
 });
 
+// Delete single notification
+router.delete('/notifications/:notificationId', async (req, res) => {
+    try {
+        const Notification = require('../models/Notification');
+        await Notification.findByIdAndDelete(req.params.notificationId);
+        res.status(200).json({ success: true, message: 'Notification deleted' });
+    } catch (error) {
+        console.error('Delete notification error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+});
+
 // Clear all notifications for user
 router.delete('/notifications/:userId/clear', async (req, res) => {
     try {

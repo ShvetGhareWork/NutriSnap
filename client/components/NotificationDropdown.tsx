@@ -300,7 +300,15 @@ export default function NotificationDropdown() {
                     </div>
 
                     <div className="p-3 bg-white/5 border-t border-white/5 text-center">
-                        <button className="text-[10px] text-slate-400 font-bold hover:text-white uppercase tracking-widest">
+                        <button 
+                            onClick={() => {
+                                setIsOpen(false);
+                                setShowToast(false);
+                                const isCoach = session?.user?.role === 'coach';
+                                router.push(isCoach ? '/coach/notifications' : '/notifications');
+                            }}
+                            className="text-[10px] text-slate-400 font-bold hover:text-white uppercase tracking-widest"
+                        >
                             View All Notifications
                         </button>
                     </div>

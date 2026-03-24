@@ -6,8 +6,8 @@ const Payment = require('../models/Payment');
 const CoachProfile = require('../models/CoachProfile');
 
 const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
+    key_id: process.env.RAZORPAY_KEY_ID || 'dummy_key_id',
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'dummy_key_secret',
 });
 
 // POST /api/payment/create-order
@@ -24,13 +24,24 @@ router.post('/create-order', async (req, res) => {
         const amountInPaise = coachProfile.chatFeeINR * 100; // Razorpay expects amount in paise
 
         // 2. Create Razorpay order
-        const options = {
-            amount: amountInPaise,
-            currency: 'INR',
-            receipt: `receipt_order_${Date.now()}`,
-        };
-
-        const order = await razorpay.orders.create(options);
+        let order;
+        if (process.env.RAZORPAY_KEY_ID) {
+            const options = {
+                amount: amountInPaise,
+                currency: 'INR',
+                receipt: `receipt_order_${Date.now()}`,
+            };
+            order = await razorpay.orders.create(options);
+        } else {
+            // Mock order creation for development if no Razorpay keys exist
+            order = {
+                id: `order_dev_${Date.now()}`,
+                amount: amountInPaise,
+                currency: 'INR',
+                status: 'created'
+            };
+            console.warn('[DEV] Created mock Razorpay order because RAZORPAY_KEY_ID is missing.');
+        }
 
         // 3. Save pending payment to DB
         await Payment.create({

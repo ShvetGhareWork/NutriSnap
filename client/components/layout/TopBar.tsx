@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Search, LogOut, Menu } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
 import NotificationDropdown from '../NotificationDropdown';
@@ -70,7 +71,8 @@ export default function TopBar() {
             <NotificationDropdown />
 
             {/* Avatar */}
-            <div
+            <Link
+                href={isCoach ? '/coach/settings' : '/profile'}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold cursor-pointer"
                 style={{ 
                     backgroundColor: mounted ? `${accentColor}20` : 'rgba(255,255,255,0.05)', 
@@ -80,7 +82,7 @@ export default function TopBar() {
                 title={session?.user?.email}
             >
                 {mounted ? initials : ''}
-            </div>
+            </Link>
 
             {/* Logout */}
             <button

@@ -12,6 +12,7 @@ import { useGlobalStore } from "@/store/useGlobalStore";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toast } from "@/components/ui/Toast";
+import Modal from "@/components/ui/Modal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Nutrition {
@@ -137,9 +138,10 @@ export default function AnalyzeMeal() {
     const [isDragging, setIsDragging] = useState(false);
     const [activeTab, setActiveTab] = useState<"analyze" | "log">("analyze");
     const [mounted, setMounted] = useState(false);
+    const [selectedEntry, setSelectedEntry] = useState<LogEntry | null>(null);
     const { data: session } = useSession();
     
-    const { foodLog, addFoodLog, deleteFoodLog } = useGlobalStore();
+    const { foodLog, addFoodLog, deleteFoodLog, setFoodLog } = useGlobalStore();
     
     const log = useMemo<LogEntry[]>(() => {
         return foodLog.map((item) => {
@@ -198,31 +200,24 @@ export default function AnalyzeMeal() {
             if (res.ok) {
                 const json = await res.json();
                 const data = json.data || [];
-                // Since this page handles fresh fetching, we inject it into the global store
-                data.forEach((l: any) => {
-                   const id = l._id || l.id;
-                   if (!useGlobalStore.getState().foodLog.find((item) => {
-                       const f = item as any;
-                       return (f._id || f.id) === id;
-                   })) {
-                       addFoodLog({
-                           ...l,
-                           _id: id,
-                           food_name: l.food_name || l.foodName,
-                           total_calories: l.total_calories ?? l.nutrition?.calories ?? 0,
-                           total_protein: l.total_protein ?? l.nutrition?.protein ?? 0,
-                           total_carbs: l.total_carbs ?? l.nutrition?.carbs ?? 0,
-                           total_fat: l.total_fat ?? l.nutrition?.fat ?? 0,
-                       });
-                   }
-                });
+                // Completely replace the food log in the store to prevent user accounts from sharing cached data.
+                const freshLogs = data.map((l: any) => ({
+                    ...l,
+                    _id: l._id || l.id,
+                    food_name: l.food_name || l.foodName,
+                    total_calories: l.total_calories ?? l.nutrition?.calories ?? 0,
+                    total_protein: l.total_protein ?? l.nutrition?.protein ?? 0,
+                    total_carbs: l.total_carbs ?? l.nutrition?.carbs ?? 0,
+                    total_fat: l.total_fat ?? l.nutrition?.fat ?? 0,
+                }));
+                setFoodLog(freshLogs);
             }
         } catch (err) {
             console.error("Failed to load log", err);
         } finally {
             setLogLoading(false);
         }
-    }, [addFoodLog, session]);
+    }, [setFoodLog, session]);
 
     useEffect(() => {
         setMounted(true);
@@ -390,10 +385,10 @@ export default function AnalyzeMeal() {
     if (!mounted) return <div className="min-h-screen bg-[#0A0A0F]" />;
 
     return (
-        <div className="p-6 sm:p-8 max-w-2xl mx-auto">
+        <div className="px-2 sm:px-8 py-4 sm:py-8 max-w-2xl mx-auto">
 
             {/* Header + tabs */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <div>
                     <h1 className="text-3xl font-black text-white leading-tight">Analyze Meal</h1>
                     <p className="text-slate-500 text-sm mt-1">Photo → AI → full nutrition breakdown</p>
@@ -685,57 +680,60 @@ export default function AnalyzeMeal() {
                     ) : (
                         <>
                             {/* Daily summary */}
-                            <div className="bg-[#13131A] border border-white/8 rounded-2xl p-4 grid grid-cols-4 divide-x divide-white/5 text-center">
-                                <div>
+                            <div className="bg-[#13131A] border border-white/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-y-4 sm:gap-y-0 sm:divide-x divide-white/5 text-center">
+                                <div className="border-r border-white/5 sm:border-r-0">
                                     <div className="text-lg font-black text-white">{log.length}</div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">Meals</div>
                                 </div>
-                                <div>
+                                <div className="border-l-0">
                                     <div className="text-lg font-black text-white">{log.reduce((s: number, e: LogEntry) => s + e.nutrition.calories, 0)}</div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">Cal</div>
                                 </div>
-                                <div>
+                                <div className="border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0 border-r border-white/5 sm:border-r-0">
                                     <div className="text-lg font-black text-emerald-400">{log.reduce((s: number, e: LogEntry) => s + e.nutrition.protein, 0)}g</div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">Protein</div>
                                 </div>
-                                <div>
+                                <div className="border-t sm:border-t-0 border-white/5 pt-4 sm:pt-0 border-l-0">
                                     <div className="text-lg font-black text-orange-400">{log.reduce((s: number, e: LogEntry) => s + e.nutrition.carbs, 0)}g</div>
                                     <div className="text-[10px] text-slate-500 uppercase tracking-wider">Carbs</div>
                                 </div>
                             </div>
-
                             {/* Entries */}
                             {log.map((entry: LogEntry) => (
-                                <div key={entry.id} className="bg-[#13131A] border border-white/8 rounded-2xl p-4 flex gap-4">
+                                <div 
+                                    key={entry.id} 
+                                    onClick={() => setSelectedEntry(entry)}
+                                    className="bg-[#13131A] border border-white/8 rounded-2xl p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-[#B8FF3C]/30 cursor-pointer transition-all hover:bg-[#13131A]/80 group"
+                                >
                                     {/* Image or placeholder */}
                                     {entry.imageUrl ? (
                                         <img src={entry.imageUrl} alt={entry.foodName}
-                                            className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
+                                            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl flex-shrink-0"
                                             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
                                         />
                                     ) : (
-                                        <div className="w-20 h-20 bg-white/5 rounded-xl flex-shrink-0 flex items-center justify-center">
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 rounded-xl flex-shrink-0 flex items-center justify-center">
                                             <Flame size={20} className="text-slate-600" />
                                         </div>
                                     )}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between mb-1">
-                                            <h3 className="text-sm font-black text-white truncate pr-2">{entry.foodName}</h3>
-                                            <button onClick={() => deleteEntryFromLog(entry.id)}
-                                                className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 transition-all flex-shrink-0">
+                                            <h3 className="text-sm font-black text-white truncate pr-2 group-hover:text-[#B8FF3C] transition-colors">{entry.foodName}</h3>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); deleteEntryFromLog(entry.id); }}
+                                                className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/20 transition-all flex-shrink-0"
+                                            >
                                                 <X size={11} className="text-slate-500" />
                                             </button>
                                         </div>
-                                        <div className="flex flex-wrap gap-2 text-xs mb-2">
+                                        <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs mb-2">
                                             <span className="text-white font-bold">{entry.nutrition.calories} <span className="text-slate-500">kcal</span></span>
-                                            <span className="text-emerald-400 font-bold">{entry.nutrition.protein}g <span className="text-slate-500">prot</span></span>
-                                            <span className="text-orange-400 font-bold">{entry.nutrition.carbs}g <span className="text-slate-500">carb</span></span>
-                                            <span className="text-yellow-400 font-bold">{entry.nutrition.fat}g <span className="text-slate-500">fat</span></span>
+                                            <span className="text-emerald-400 font-bold">{entry.nutrition.protein}g <span className="text-slate-500 text-[10px]">prot</span></span>
+                                            <span className="text-orange-400 font-bold">{entry.nutrition.carbs}g <span className="text-slate-500 text-[10px]">carb</span></span>
                                         </div>
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className="text-[10px] px-2 py-0.5 bg-white/5 border border-white/8 rounded-full text-slate-400">{entry.mealType}</span>
-                                            <span className="text-[10px] text-slate-600">{entry.grams}g × {entry.servings} serving{entry.servings !== 1 ? "s" : ""}</span>
-                                            <span className="text-[10px] text-slate-600">{entry.date}</span>
+                                            <span className="text-[10px] text-slate-600 truncate">{entry.grams}g × {entry.servings}s</span>
                                             <span className="text-[10px] text-slate-600 ml-auto">{entry.loggedAt}</span>
                                         </div>
                                     </div>
@@ -750,6 +748,63 @@ export default function AnalyzeMeal() {
                     )}
                 </div>
             )}
+
+            {/* ── Meal Details Modal ─────────────────────────────────────── */}
+            <Modal
+                open={!!selectedEntry}
+                onClose={() => setSelectedEntry(null)}
+                title="Meal Details"
+                size="md"
+            >
+                {selectedEntry && (
+                    <div className="space-y-6">
+                        <div className="flex gap-4 items-start">
+                            {selectedEntry.imageUrl ? (
+                                <img src={selectedEntry.imageUrl} alt={selectedEntry.foodName} className="w-24 h-24 rounded-2xl object-cover border border-white/10" />
+                            ) : (
+                                <div className="w-24 h-24 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+                                    <Flame size={32} className="text-slate-600" />
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0 py-1">
+                                <h3 className="text-xl font-black text-white leading-tight mb-1">{selectedEntry.foodName}</h3>
+                                <p className="text-xs text-[#B8FF3C] font-bold uppercase tracking-widest">{selectedEntry.mealType}</p>
+                                <p className="text-xs text-slate-500 mt-2">{selectedEntry.date} · {selectedEntry.loggedAt}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <MacroCard icon={<Flame size={16} />} label="Calories" value={selectedEntry.nutrition.calories} unit="kcal" color="text-[#B8FF3C]" />
+                            <MacroCard icon={<Beef size={16} />} label="Protein" value={selectedEntry.nutrition.protein} unit="g" color="text-emerald-400" />
+                            <MacroCard icon={<Wheat size={16} />} label="Carbs" value={selectedEntry.nutrition.carbs} unit="g" color="text-orange-400" />
+                            <MacroCard icon={<Droplets size={16} />} label="Fat" value={selectedEntry.nutrition.fat} unit="g" color="text-yellow-400" />
+                        </div>
+
+                        <div className="bg-white/5 border border-white/8 rounded-2xl p-5">
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Detailed Breakdown</h4>
+                            <div className="space-y-3">
+                                {[
+                                    { label: "Fiber", value: selectedEntry.nutrition.fiber, unit: "g" },
+                                    { label: "Sugar", value: selectedEntry.nutrition.sugar, unit: "g" },
+                                    { label: "Sodium", value: selectedEntry.nutrition.sodium, unit: "mg" },
+                                ].map((item) => (
+                                    <div key={item.label} className="flex justify-between items-center text-sm border-b border-white/[0.04] pb-2 last:border-0 last:pb-0">
+                                        <span className="text-slate-400 font-medium">{item.label}</span>
+                                        <span className="text-white font-bold">{item.value}{item.unit}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setSelectedEntry(null)}
+                            className="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3 rounded-xl transition-colors border border-white/10"
+                        >
+                            Close
+                        </button>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

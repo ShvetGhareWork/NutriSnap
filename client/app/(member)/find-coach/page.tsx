@@ -267,6 +267,13 @@ export default function FindCoachPage() {
 
             if (!orderJson.success) throw new Error(orderJson.error);
 
+            // 1.5 Dev Mode Bypass
+            if (orderJson.order.id.startsWith("order_dev_")) {
+                alert("🛠 Development Mode:\nRazorpay keys not detected. Bypassing payment modal and simulating success!");
+                await finalizeRequest(coach.user._id);
+                return;
+            }
+
             // 2. Razorpay Modal
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,

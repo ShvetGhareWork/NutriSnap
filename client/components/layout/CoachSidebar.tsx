@@ -134,12 +134,16 @@ export default function CoachSidebar() {
             <div className={cn("border-t border-white/[0.06] py-4 flex flex-col gap-2", isCollapsed ? "px-2 items-center" : "px-4")}>
 
                 {/* Profile Section */}
-                <div className={cn(
-                    "flex items-center transition-all",
-                    isCollapsed
-                        ? "justify-center w-12 h-12 rounded-xl mb-2"
-                        : "gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] mb-2"
-                )}>
+                <Link
+                    href="/coach/settings"
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                        "flex items-center transition-all hover:bg-white/[0.08] cursor-pointer",
+                        isCollapsed
+                            ? "justify-center w-12 h-12 rounded-xl mb-2"
+                            : "gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] mb-2"
+                    )}
+                >
                     <div className="w-9 h-9 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs flex-shrink-0 border border-indigo-500/30">
                         {initials}
                     </div>
@@ -157,7 +161,7 @@ export default function CoachSidebar() {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
+                </Link>
 
                 <Link href="/coach/settings" onClick={() => setIsOpen(false)} className={isCollapsed ? "w-full flex justify-center" : "w-full"}>
                     <div
