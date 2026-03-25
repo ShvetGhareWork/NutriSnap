@@ -55,7 +55,7 @@ async function identifyFoodWithGroq(
   base64Image: string,
   mimeType: string
 ): Promise<VisionResult> {
-  const GROQ_KEY = process.env.GROQ_KEY;
+  const GROQ_KEY = process.env.GROQ_KEY?.trim();
   if (!GROQ_KEY) throw new Error("GROQ_KEY not set in .env.local");
 
   const prompt = `You are a food recognition expert. Analyze this food image carefully.
@@ -132,7 +132,7 @@ Rules:
 
 // ── Step 2: USDA FoodData Central ────────────────────────────────────────────
 async function getNutritionFromUSDA(foodName: string): Promise<NutritionPer100g> {
-  const USDA_KEY = process.env.USDA_KEY;
+  const USDA_KEY = process.env.USDA_KEY?.trim();
   if (!USDA_KEY) throw new Error("USDA_KEY not set in .env.local");
 
   const params = new URLSearchParams({
@@ -151,7 +151,8 @@ async function getNutritionFromUSDA(foodName: string): Promise<NutritionPer100g>
   const food = data.foods?.[0];
 
   if (!food) {
-    return { calories: 200, protein: 15, carbs: 25, fat: 8, fiber: 3, sugar: 5, sodium: 300 };
+    // 15p * 4 = 60 | 25c * 4 = 100 | 8f * 9 = 72 | 60 + 100 + 72 = 232 calories
+    return { calories: 232, protein: 15, carbs: 25, fat: 8, fiber: 3, sugar: 5, sodium: 300 };
   }
 
   const getNutrient = (name: string): number => {
@@ -162,11 +163,21 @@ async function getNutritionFromUSDA(foodName: string): Promise<NutritionPer100g>
     return Math.round(n?.value ?? 0);
   };
 
+  const protein = getNutrient("Protein");
+  const carbs = getNutrient("Carbohydrate");
+  const fat = getNutrient("Total lipid");
+
+  // Calculate calories using the 4-4-9 formula for improved accuracy
+  let calories = Math.round((protein * 4) + (carbs * 4) + (fat * 9));
+  if (calories === 0) {
+    calories = getNutrient("Energy");
+  }
+
   return {
-    calories: getNutrient("Energy"),
-    protein:  getNutrient("Protein"),
-    carbs:    getNutrient("Carbohydrate"),
-    fat:      getNutrient("Total lipid"),
+    calories,
+    protein,
+    carbs,
+    fat,
     fiber:    getNutrient("Fiber"),
     sugar:    getNutrient("Sugars"),
     sodium:   getNutrient("Sodium"),
@@ -189,6 +200,13 @@ export async function POST(req: NextRequest) {
     const actualGrams = servingGrams ?? visionResult.estimatedServingG;
     const multiplier = actualGrams / 100;
 
+    const protein = Math.round(per100g.protein * multiplier);
+    const carbs = Math.round(per100g.carbs * multiplier);
+    const fat = Math.round(per100g.fat * multiplier);
+    
+    // Accurate calorie calculation directly from calculated macros
+    const calories = (protein * 4) + (carbs * 4) + (fat * 9);
+
     const result: AnalysisResult = {
       foodName:     visionResult.foodName,
       servingGrams: actualGrams,
@@ -197,10 +215,10 @@ export async function POST(req: NextRequest) {
       confidence:   visionResult.confidence,
       ingredients:  visionResult.ingredients,
       nutrition: {
-        calories: Math.round(per100g.calories * multiplier),
-        protein:  Math.round(per100g.protein  * multiplier),
-        carbs:    Math.round(per100g.carbs    * multiplier),
-        fat:      Math.round(per100g.fat      * multiplier),
+        calories,
+        protein,
+        carbs,
+        fat,
         fiber:    Math.round(per100g.fiber    * multiplier),
         sugar:    Math.round(per100g.sugar    * multiplier),
         sodium:   Math.round(per100g.sodium   * multiplier),
