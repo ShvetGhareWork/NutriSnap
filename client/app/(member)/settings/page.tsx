@@ -10,6 +10,8 @@ import {
     Droplets, Utensils, Dumbbell, Sparkles
 } from "lucide-react";
 import { CustomSelect } from "@/components/ui/Select";
+import { motion, AnimatePresence } from "framer-motion";
+import { Toast } from "@/components/ui/Toast";
 
 // ─── Internal UI Components (Premium Look) ───────────────────────────────────
 const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
@@ -77,6 +79,12 @@ export default function SettingsPage() {
     const [apiKey, setApiKey] = useState("••••••••••••••••••••");
     const [showKey, setShowKey] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     // Sync from store
     const [targets, setTargets] = useState({
@@ -155,7 +163,7 @@ export default function SettingsPage() {
             }
         } catch (err) {
             console.error("Failed to save settings:", err);
-            alert("Error saving settings");
+            showToast("Error saving settings", "error");
         } finally {
             setIsSaving(false);
         }
@@ -188,7 +196,7 @@ export default function SettingsPage() {
             }
         } catch (err) {
             console.error("Feedback error:", err);
-            alert("Error submitting feedback");
+            showToast("Error submitting feedback", "error");
         } finally {
             setFbSubmitting(false);
         }
@@ -355,7 +363,7 @@ export default function SettingsPage() {
                                             const t = (document.getElementById('fb-title') as HTMLInputElement).value;
                                             const d = (document.getElementById('fb-desc') as HTMLTextAreaElement).value;
                                             if (t && d) handleFeedback(t, d);
-                                            else alert("Please fill in both title and description");
+                                            else showToast("Please fill in both title and description", "error");
                                         }}
                                         className="w-full bg-[#B8FF3C] text-[#0A0A0F] py-4 rounded-xl text-sm font-black hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-[#B8FF3C]/20 disabled:opacity-50"
                                     >
@@ -397,6 +405,10 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            <AnimatePresence>
+                {toast && <Toast message={toast.message} type={toast.type} />}
+            </AnimatePresence>
         </div>
     );
 }

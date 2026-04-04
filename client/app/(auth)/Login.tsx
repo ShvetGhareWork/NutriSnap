@@ -132,11 +132,11 @@ function LoginForm() {
                     <div className="flex-1 h-px bg-white/[0.06]" />
                 </div>
 
-                {/* Social buttons */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Social button */}
+                <div>
                     <button 
                         onClick={() => signIn('google')}
-                        className="flex items-center justify-center gap-2.5 bg-[#1a2a12]/60 border border-white/[0.08] rounded-xl py-3 text-white text-sm font-semibold hover:bg-[#1a2a12] transition-colors"
+                        className="w-full flex items-center justify-center gap-2.5 bg-[#1a2a12]/60 border border-white/[0.08] rounded-xl py-4 text-white text-sm font-semibold hover:bg-[#1a2a12] transition-colors"
                     >
                         <svg className="w-4 h-4" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -144,13 +144,7 @@ function LoginForm() {
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Google
-                    </button>
-                    <button className="flex items-center justify-center gap-2.5 bg-[#1a2a12]/60 border border-white/[0.08] rounded-xl py-3 text-white text-sm font-semibold hover:bg-[#1a2a12] transition-colors">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.42c1.28.07 2.17.78 2.93.79 1.12-.21 2.19-.95 3.39-.84 1.44.12 2.53.71 3.25 1.8-3.02 1.78-2.56 5.75.44 6.93-.73 1.55-1.73 3.07-2.01 4.18zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.15 1.17-.34 2.35-1.02 3.13-.69.73-1.83 1.35-2.95 1.25-.17-1.13.40-2.28 1.03-2.88z" />
-                        </svg>
-                        Apple
+                        Continue with Google
                     </button>
                 </div>
             </div>

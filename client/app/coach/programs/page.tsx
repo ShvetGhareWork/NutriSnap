@@ -405,6 +405,7 @@ function WeekBuilderModal({ week, onConfirm, onClose, showToast }: {
 // ── Create Program Modal ──────────────────────────────────────────────────────
 
 function CreateProgramModal({ onClose, onSuccess, showToast }: { onClose: () => void; onSuccess: () => void; showToast: (m: string, t?: "success" | "error") => void }) {
+    const { data: session } = useSession();
     const [programName, setProgramName] = useState("");
     const [category, setCategory] = useState("Bulking");
     const [duration, setDuration] = useState("8");
@@ -427,7 +428,7 @@ function CreateProgramModal({ onClose, onSuccess, showToast }: { onClose: () => 
     };
 
     const handleCreate = async () => {
-        if (!programName) return alert("Please enter a program name");
+        if (!programName) return showToast("Please enter a program name", "error");
         setIsSaving(true);
         try {
             const res = await fetch("/api/programs", {
@@ -441,7 +442,7 @@ function CreateProgramModal({ onClose, onSuccess, showToast }: { onClose: () => 
                     gradientFrom: category === "Cutting" ? "#1a1a1a" : category === "Bulking" ? "#f5e6c8" : "#1a1a2e",
                     gradientTo: category === "Cutting" ? "#0a0a0a" : category === "Bulking" ? "#d4a96a" : "#0d0d1a",
                     weeksData: weeks,
-                    coach: useSession().data?.user?.id
+                    coach: session?.user?.id
                 }),
             });
             const data = await res.json();

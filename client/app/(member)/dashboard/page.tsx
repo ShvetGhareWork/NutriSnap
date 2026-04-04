@@ -5,8 +5,9 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { 
     TrendingUp, TrendingDown, Minus, Bell, Lightbulb, 
-    Activity, ArrowRight, Plus, Dumbbell 
+    Activity, ArrowRight, Plus, Dumbbell, HelpCircle 
 } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 import {
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
     ResponsiveContainer, ReferenceLine, Cell, CartesianGrid
@@ -113,6 +114,7 @@ export default function DashboardPage() {
     const [activePlan, setActivePlan] = useState<any>(null);
     const [mounted, setMounted] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
+    const { startMemberTour } = useTour();
     
     const fetchActivePlan = async () => {
         if (!session?.user?.id) return;
@@ -304,13 +306,22 @@ export default function DashboardPage() {
     return (
         <div className="space-y-5">
 
-            <div className="mb-2">
-                <h1 className="text-2xl font-black text-white">{greeting}, {user?.firstName || (session?.user as any)?.name?.split(' ')[0] || "there"}!</h1>
-                <p className="text-sm text-slate-400">Here's your daily summary.</p>
+            <div className="mb-2 flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-black text-white">{greeting}, {user?.firstName || (session?.user as any)?.name?.split(' ')[0] || "there"}!</h1>
+                  <p className="text-sm text-slate-400">Here's your daily summary.</p>
+                </div>
+                <button 
+                    onClick={startMemberTour}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-[#B8FF3C] hover:border-[#B8FF3C]/30 transition-all group"
+                >
+                    <HelpCircle size={16} className="group-hover:rotate-12 transition-transform" />
+                    Take Tour
+                </button>
             </div>
 
             {/* Stat cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div id="member-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard label="Calories" value={Math.round(todayTotals.calories).toLocaleString()} unit="kcal" trend="up" trendLabel={`${Math.round((todayTotals.calories / TARGET_CALORIES) * 100)}% of goal`} icon="🔥" />
                 <StatCard label="Protein" value={Math.round(todayTotals.protein).toString()} unit="grams" trend={todayTotals.protein >= TARGET_PROTEIN ? "up" : "down"} trendLabel={`${Math.round((todayTotals.protein / TARGET_PROTEIN) * 100)}% of goal`} icon="💪" />
                 <StatCard label="Weight" value={user?.weightKg ? user.weightKg.toString() : "--"} unit="kg" trend="flat" trendLabel="Current" icon="⚖️" />
@@ -322,7 +333,7 @@ export default function DashboardPage() {
 
                 {/* Water + Reminder stacked */}
                 <div className="flex flex-col gap-4">
-                    <div className="bg-[#13131A] border border-white/6 rounded-2xl p-5 flex flex-col items-center flex-1">
+                    <div id="water-card" className="bg-[#13131A] border border-white/6 rounded-2xl p-5 flex flex-col items-center flex-1">
                         <div className="text-sm font-black text-white mb-4 self-start flex justify-between w-full">
                             <span>Water Intake</span>
                         </div>
@@ -358,7 +369,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* AI Daily Focus */}
-                <div className="sm:col-span-1 lg:col-span-2 bg-[#13131A] border border-white/6 rounded-2xl p-5">
+                <div id="ai-focus-card" className="sm:col-span-1 lg:col-span-2 bg-[#13131A] border border-white/6 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-base font-black text-white">AI Daily Focus</h2>
                         <div className="w-6 h-6 bg-[#B8FF3C]/20 rounded-lg flex items-center justify-center">
@@ -382,7 +393,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Workout Section */}
-            <div className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
+            <div id="active-workout" className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <Dumbbell size={18} className="text-[#B8FF3C]" />
@@ -442,7 +453,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Weekly Summary */}
-            <div className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
+            <div id="weekly-summary" className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-1.5">
@@ -471,7 +482,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div id="nutrition-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Calorie area chart */}
                 <div className="bg-[#13131A] border border-white/6 rounded-2xl p-5 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
@@ -584,7 +595,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Today's Meals */}
-            <div className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
+            <div id="meals-card" className="bg-[#13131A] border border-white/6 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-black text-white">Today's Meals & Recipes</h3>
                     <button className="text-xs text-[#B8FF3C] font-bold flex items-center gap-1 hover:text-[#d4ff6e] transition-colors">

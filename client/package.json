@@ -19,6 +19,7 @@
     "canvas-confetti": "^1.9.4",
     "cloudinary": "^2.9.0",
     "critters": "^0.0.23",
+    "driver.js": "^1.4.0",
     "framer-motion": "^12.35.0",
     "lucide-react": "^0.577.0",
     "mongoose": "^8.23.0",

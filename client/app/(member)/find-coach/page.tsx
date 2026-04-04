@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Search, Star, ChevronDown, Zap, Check, User, Info, Loader2, Calendar, IndianRupee, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Toast } from "@/components/ui/Toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Specialty = string;
@@ -42,7 +44,7 @@ function CoachCard({ coach, onConnect, onViewProfile }: {
     const rating = 5.0; // Mocked for now
 
     return (
-        <div className="bg-[#13131A] border border-white/5 rounded-[2.5rem] p-8 hover:border-[#B8FF3C]/20 transition-all duration-500 group flex flex-col h-full shadow-2xl relative overflow-hidden">
+        <div className="bg-[#13131A] border border-white/5 rounded-[2.5rem] p-6 sm:p-8 hover:border-[#B8FF3C]/20 transition-all duration-500 group flex flex-col h-full shadow-2xl relative overflow-hidden">
             {/* Decorative BG element */}
             <div className={`absolute top-0 right-0 w-32 h-32 blur-[80px] -mr-16 -mt-16 transition-opacity duration-500 ${coach.paidChatEnabled ? 'bg-[#B8FF3C]/10' : 'bg-blue-500/5'}`} />
 
@@ -59,7 +61,7 @@ function CoachCard({ coach, onConnect, onViewProfile }: {
             </div>
 
             <div className="mb-6">
-                <h3 className="font-black text-white text-2xl leading-tight mb-3 group-hover:text-[#B8FF3C] transition-colors tracking-tight">
+                <h3 className="font-black text-white text-xl sm:text-2xl leading-tight mb-3 group-hover:text-[#B8FF3C] transition-colors tracking-tight">
                     {fullName}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
@@ -90,16 +92,16 @@ function CoachCard({ coach, onConnect, onViewProfile }: {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                 <button
                     onClick={() => onConnect(coach)}
-                    className="flex items-center justify-center gap-2 bg-[#B8FF3C] hover:bg-[#d4ff6e] text-black font-black text-[11px] py-4 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-[#B8FF3C]/10 uppercase tracking-widest"
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#B8FF3C] hover:bg-[#d4ff6e] text-black font-black text-[11px] py-4 px-2 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-[#B8FF3C]/10 uppercase tracking-widest"
                 >
                     {coach.paidChatEnabled ? "Pay & Connect" : "CONNECT"}
                 </button>
                 <button
                     onClick={() => onViewProfile(coach)}
-                    className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/8 text-white font-black text-[11px] py-4 rounded-2xl transition-all active:scale-[0.98] uppercase tracking-widest"
+                    className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/8 text-white font-black text-[11px] py-4 px-2 rounded-2xl transition-all active:scale-[0.98] uppercase tracking-widest"
                 >
                     PROFILE
                 </button>
@@ -163,7 +165,7 @@ function CoachProfileModal({ coach, onClose, onConnect }: { coach: Coach; onClos
                                 <h4 className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mb-2">Professional Access</h4>
                                 <div className="flex items-baseline gap-2 mb-8">
                                     <span className="text-[10px] text-[#B8FF3C] font-black mb-1">₹</span>
-                                    <span className="text-5xl font-black text-white italic">{coach.paidChatEnabled ? coach.chatFeeINR : "FREE"}</span>
+                                    <span className="text-4xl sm:text-5xl font-black text-white italic">{coach.paidChatEnabled ? coach.chatFeeINR : "FREE"}</span>
                                     <span className="text-[10px] text-white/40 font-black uppercase ml-1">Per connection</span>
                                 </div>
 
@@ -190,11 +192,11 @@ function CoachProfileModal({ coach, onClose, onConnect }: { coach: Coach; onClos
                     <div className="flex flex-col sm:flex-row gap-4 pt-10 border-t border-white/5">
                         <button
                             onClick={() => { onConnect(coach); onClose(); }}
-                            className="flex-1 bg-[#B8FF3C] text-black font-black text-sm py-5 rounded-[1.5rem] shadow-2xl shadow-[#B8FF3C]/20 hover:bg-[#d4ff6e] transition-all transform hover:-translate-y-1 active:translate-y-0"
+                            className="flex-1 w-full bg-[#B8FF3C] text-black font-black text-sm py-5 px-2 rounded-[1.5rem] shadow-2xl shadow-[#B8FF3C]/20 hover:bg-[#d4ff6e] transition-all transform hover:-translate-y-1 active:translate-y-0"
                         >
                             {coach.paidChatEnabled ? `PAY ₹${coach.chatFeeINR} & CONNECT` : "CONNECT WITH COACH"}
                         </button>
-                        <button onClick={onClose} className="flex-1 bg-white/5 text-white/40 hover:text-white font-black text-sm py-5 rounded-[1.5rem] border border-white/5 hover:bg-white/10 transition-all">
+                        <button onClick={onClose} className="flex-1 w-full bg-white/5 text-white/40 hover:text-white font-black text-sm py-5 px-2 rounded-[1.5rem] border border-white/5 hover:bg-white/10 transition-all">
                             CLOSE PROFILE
                         </button>
                     </div>
@@ -234,6 +236,12 @@ export default function FindCoachPage() {
     const [activeFilter, setActiveFilter] = useState("All");
     const [viewCoach, setViewCoach] = useState<Coach | null>(null);
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     useEffect(() => {
         async function fetchCoaches() {
@@ -269,7 +277,7 @@ export default function FindCoachPage() {
 
             // 1.5 Dev Mode Bypass
             if (orderJson.order.id.startsWith("order_dev_")) {
-                alert("🛠 Development Mode:\nRazorpay keys not detected. Bypassing payment modal and simulating success!");
+                showToast("🛠 Dev Mode: Razerpay keys not detected. Bypassing payment.", "info");
                 await finalizeRequest(coach.user._id);
                 return;
             }
@@ -296,7 +304,7 @@ export default function FindCoachPage() {
                         // 4. Finalize Connection
                         await finalizeRequest(coach.user._id);
                     } else {
-                        alert("Payment verification failed.");
+                        showToast("Payment verification failed.", "error");
                     }
                 },
                 modal: {
@@ -308,7 +316,7 @@ export default function FindCoachPage() {
             rzp.open();
 
         } catch (err: any) {
-            alert(`Payment Error: ${err.message}`);
+            showToast(`Payment Error: ${err.message}`, "error");
             setIsProcessingPayment(false);
         }
     };
@@ -322,10 +330,10 @@ export default function FindCoachPage() {
                 body: JSON.stringify({ memberId: session?.user?.id, coachId })
             });
             const json = await res.json();
-            if (json.success) alert("Payment successful! Request sent to coach.");
-            else alert(json.error || "Payment passed but final request failed. Contact support.");
+            if (json.success) showToast("Payment successful! Request sent to coach.", "success");
+            else showToast(json.error || "Payment passed but final request failed.", "error");
         } catch (error) {
-            alert("Error completing request.");
+            showToast("Error completing request.", "error");
         } finally {
             setIsProcessingPayment(false);
         }
@@ -362,7 +370,7 @@ export default function FindCoachPage() {
     }
 
     return (
-        <div className="space-y-12 pb-20 max-w-[1400px] mx-auto overflow-x-hidden">
+        <div className="space-y-8 sm:space-y-12 pb-20 pt-4 sm:pt-6 max-w-[1400px] mx-auto overflow-x-hidden px-4 sm:px-6 lg:px-8">
             {isProcessingPayment && (
                 <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-[#13131A] p-10 rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-6 shadow-2xl">
@@ -372,41 +380,41 @@ export default function FindCoachPage() {
                 </div>
             )}
 
-            <div className="animate-fade-in relative">
+            <div className="animate-fade-in relative mt-4 sm:mt-0">
                 {/* Background Glow */}
-                <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#B8FF3C]/5 blur-[120px] rounded-full" />
+                <div className="absolute -top-24 -left-20 sm:-left-24 w-72 h-72 sm:w-96 sm:h-96 bg-[#B8FF3C]/5 blur-[100px] sm:blur-[120px] rounded-full" />
 
-                <h1 className="text-6xl sm:text-7xl font-black text-white tracking-tighter leading-[0.9] mb-6 italic relative">
-                    World-Class Guidance. <br />
-                    <span className="text-[#B8FF3C]">Quantified Results.</span>
+                <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tighter leading-[0.9] sm:leading-[0.9] mb-4 sm:mb-6 italic relative">
+                    World-Class Guidance. <br className="hidden sm:block" />
+                    <span className="text-[#B8FF3C] block sm:inline mt-2 sm:mt-0">Quantified Results.</span>
                 </h1>
-                <p className="text-slate-400 text-base sm:text-lg max-w-2xl leading-relaxed font-medium relative">
+                <p className="text-slate-400 text-[15px] sm:text-base md:text-lg max-w-2xl leading-relaxed font-medium relative">
                     Access high-performance transformation experts in our verified elite network.
                     NutriSnap intelligence meets real-world professional coaching experience.
                 </p>
             </div>
 
-            <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center justify-between border-y border-white/5 py-8 bg-white/[0.01]">
-                <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between border-y border-white/5 py-6 sm:py-8 bg-white/[0.01] -mx-4 px-4 sm:mx-0 sm:px-0">
+                <div className="flex overflow-x-auto w-full lg:w-auto pb-4 sm:pb-0 sm:flex-wrap gap-2.5 custom-scrollbar snap-x">
                     {FILTERS.map((f) => (
                         <button
                             key={f}
                             onClick={() => setActiveFilter(f)}
-                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all transform active:scale-95 ${activeFilter === f ? "bg-[#B8FF3C] text-black shadow-lg shadow-[#B8FF3C]/20" : "bg-white/5 text-white/30 hover:text-white hover:bg-white/10"
+                            className={`whitespace-nowrap shrink-0 px-5 sm:px-6 py-3 sm:py-2.5 rounded-xl text-[11px] sm:text-[10px] font-black tracking-widest uppercase transition-all transform active:scale-95 snap-center ${activeFilter === f ? "bg-[#B8FF3C] text-black shadow-lg shadow-[#B8FF3C]/20" : "bg-white/5 text-white/30 hover:text-white hover:bg-white/10"
                                 }`}
                         >
                             {f}
                         </button>
                     ))}
                 </div>
-                <div className="relative w-full xl:w-96">
+                <div className="relative w-full lg:w-96 shrink-0">
                     <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20" />
                     <input
                         type="text"
                         placeholder="Filter by master coach name..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-6 py-4 text-[11px] font-black uppercase text-white outline-none focus:border-[#B8FF3C]/30 transition-all placeholder:text-white/10"
+                        className="w-full bg-white/[0.03] border border-white/5 rounded-2xl pl-12 pr-6 py-4 text-[11px] font-black uppercase text-white outline-none focus:border-[#B8FF3C]/30 transition-all placeholder:text-white/10 focus:bg-white/[0.05]"
                     />
                 </div>
             </div>
@@ -441,6 +449,10 @@ export default function FindCoachPage() {
                     onConnect={handleConnect}
                 />
             )}
+
+            <AnimatePresence>
+                {toast && <Toast message={toast.message} type={toast.type} />}
+            </AnimatePresence>
         </div>
     );
 }

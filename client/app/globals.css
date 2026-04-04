@@ -134,3 +134,113 @@ body {
 
 /* ===== FOCUS ===== */
 .focus-ring:focus-visible { outline: 2px solid #B8FF3C; outline-offset: 2px; }
+
+/* ===== DRIVER.JS THEME OVERRIDES ===== */
+.nutrisnap-driver-popover {
+  background: #13131A !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 1.5rem !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 15px rgba(184, 255, 60, 0.05) !important;
+  max-width: 320px !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-title {
+  color: #B8FF3C !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 1.1rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-description {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.9rem !important;
+  line-height: 1.6 !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-footer {
+  margin-top: 1.5rem !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 0.5rem !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-shadow: none !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Specific button overrides for Driver.js v1+ */
+.nutrisnap-driver-popover .driver-popover-next-btn,
+.nutrisnap-driver-popover .driver-popover-btn-next {
+  background: #B8FF3C !important;
+  color: #0A0A0F !important;
+  border: none !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-next-btn:hover,
+.nutrisnap-driver-popover .driver-popover-btn-next:hover {
+  background: #c9ff5f !important;
+  box-shadow: 0 0 15px rgba(184, 255, 60, 0.3) !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-prev-btn,
+.nutrisnap-driver-popover .driver-popover-btn-prev {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-close-btn {
+  color: rgba(255, 255, 255, 0.3) !important;
+  transition: color 0.2s ease !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-close-btn:hover {
+  color: #B8FF3C !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-progress-text {
+  color: rgba(255, 255, 255, 0.3) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  position: absolute !important;
+  left: 1.5rem !important;
+  bottom: 1.7rem !important;
+}
+
+.nutrisnap-driver-popover .driver-popover-arrow-side-top { border-top-color: #13131A !important; }
+.nutrisnap-driver-popover .driver-popover-arrow-side-bottom { border-bottom-color: #13131A !important; }
+.nutrisnap-driver-popover .driver-popover-arrow-side-left { border-left-color: #13131A !important; }
+.nutrisnap-driver-popover .driver-popover-arrow-side-right { border-right-color: #13131A !important; }
+
+/* Ensure overlay is dark and cinematic WITHOUT blurring the spotlighted element */
+.driver-overlay {
+  background: rgba(10, 10, 15, 0.85) !important;
+  opacity: 1 !important;
+}
+
+/* Ensure highlighted elements are correctly spotlighted */
+.driver-active-element {
+  box-shadow: 0 0 0 5000px rgba(10, 10, 15, 0.85) !important;
+  z-index: 999999 !important;
+  position: relative !important;
+}

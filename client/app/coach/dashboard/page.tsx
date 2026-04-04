@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Users, Zap, Trophy, Clock, Check, UserPlus, Utensils, Dumbbell, Target, MessageSquare, Menu, X, Info, Search, Star, Calendar } from "lucide-react";
+import { Users, Zap, Trophy, Clock, Check, UserPlus, Utensils, Dumbbell, Target, MessageSquare, Menu, X, Info, Search, Star, Calendar, Mail, HelpCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Toast } from "@/components/ui/Toast";
+import { useTour } from "@/hooks/useTour";
 
 // ── Icons mapping ───────────────────────────────────────────────────────────
 const Icons = {
@@ -140,6 +143,15 @@ export default function CoachDashboard() {
     const [viewMember, setViewMember] = useState<any | null>(null);
     const [clientLogs, setClientLogs] = useState<any[]>([]);
     const [loadingLogs, setLoadingLogs] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const { startCoachTour } = useTour();
+    
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     const fetchData = async () => {
         if (!session?.user?.id) return;
@@ -209,17 +221,24 @@ export default function CoachDashboard() {
     };
 
     const handleInvite = async () => {
-        const email = prompt("Enter client's email:");
-        if (!email) return;
+        if (!inviteEmail) return;
         setInviting(true);
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
             const res = await fetch(`${apiBase}/api/coach/invite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ coachId: session?.user?.id, email })
+                body: JSON.stringify({ coachId: session?.user?.id, email: inviteEmail })
             });
-            if (res.ok) alert("Invite sent!");
+            if (res.ok) {
+                showToast("Invite sent successfully!", "success");
+                setShowInviteModal(false);
+                setInviteEmail("");
+            } else {
+                showToast("Failed to send invite.", "error");
+            }
+        } catch (err) {
+            showToast("Error sending invite.", "error");
         } finally {
             setInviting(false);
             fetchData();
@@ -236,20 +255,34 @@ export default function CoachDashboard() {
     if (loading) return <div className="flex items-center justify-center min-h-[400px] text-white/50">Loading coach dashboard...</div>;
 
     return (
-        <div className="space-y-5 animate-fade-in pb-32">
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="space-y-6 animate-fade-in pb-32">
+            <div className="flex items-center justify-between mb-2">
+                <div>
+                   <h1 className="text-2xl font-black text-white">Coach Command Center</h1>
+                   <p className="text-sm text-white/40">Manage your athletes and track performance</p>
+                </div>
+                <button 
+                    onClick={startCoachTour}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white/60 hover:text-[#B5FF4D] hover:border-[#B5FF4D]/30 transition-all group"
+                >
+                    <HelpCircle size={16} className="group-hover:rotate-12 transition-transform" />
+                    Take Tour
+                </button>
+            </div>
+
+            <div id="coach-stats" className="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 {displayStats.map((c) => <StatCard key={c.label} {...c} />)}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-                <div className="bg-[#1A2210] border border-white/5 rounded-2xl p-5">
+                <div id="client-overview" className="bg-[#1A2210] border border-white/5 rounded-2xl p-5">
                     <div className="flex items-start justify-between mb-4">
                         <div>
                             <h2 className="font-bold text-white text-base">Client Overview</h2>
                             <p className="text-xs text-white/40 mt-0.5">Monitor engagement</p>
                         </div>
-                        <button onClick={handleInvite} disabled={inviting} className="bg-[#B5FF4D] text-[#0F1A06] font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-50 flex items-center gap-2">
-                            <Icons.UserPlus size={14} /> {inviting ? 'Inviting...' : 'Invite'}
+                        <button id="invite-client-btn" onClick={() => setShowInviteModal(true)} className="bg-[#B5FF4D] text-[#0F1A06] font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-50 flex items-center gap-2">
+                            <Icons.UserPlus size={14} /> Invite
                         </button>
                     </div>
 
@@ -269,7 +302,7 @@ export default function CoachDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-[#1A2210] border border-white/5 rounded-2xl p-5 flex flex-col">
+                <div id="activity-feed" className="bg-[#1A2210] border border-white/5 rounded-2xl p-5 flex flex-col">
                     <div className="flex items-center gap-2 mb-4 text-white">
                         <Icons.Clock size={16} className="text-[#B5FF4D]" />
                         <h2 className="font-bold text-base">Activity Feed</h2>
@@ -289,7 +322,7 @@ export default function CoachDashboard() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-[#1A2210] border border-white/5 rounded-2xl p-5">
+                <div id="pending-requests" className="bg-[#1A2210] border border-white/5 rounded-2xl p-5">
                     <div className="flex items-center gap-2 mb-4 text-white">
                         <Icons.Check size={16} className="text-[#B5FF4D]" />
                         <h2 className="font-bold text-base">Pending Requests</h2>
@@ -339,6 +372,56 @@ export default function CoachDashboard() {
             )}
 
             {viewMember && <MemberProfileModal member={viewMember} onClose={() => setViewMember(null)} onAccept={handleAccept} />}
+
+            {showInviteModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => !inviting && setShowInviteModal(false)} />
+                    <div className="relative w-full max-w-md bg-[#131A0B] border border-white/10 rounded-[2rem] p-8 shadow-2xl animate-in zoom-in duration-300">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-2xl bg-[#B5FF4D]/10 flex items-center justify-center text-[#B5FF4D]">
+                                <Mail size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white">Invite Client</h3>
+                                <p className="text-white/40 text-xs font-medium">Send a connection request via email</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-2">EMAIL ADDRESS</label>
+                                <input 
+                                    type="email" 
+                                    placeholder="client@example.com" 
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white outline-none focus:border-[#B5FF4D]/50 transition-all placeholder:text-white/10"
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={handleInvite} 
+                                    disabled={inviting || !inviteEmail}
+                                    className="w-full bg-[#B5FF4D] text-[#0F1A06] font-black text-sm py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+                                >
+                                    {inviting ? "SENDING..." : "SEND INVITE"}
+                                </button>
+                                <button 
+                                    onClick={() => setShowInviteModal(false)} 
+                                    className="text-white/40 font-bold text-xs py-2 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <AnimatePresence>
+                {toast && <Toast message={toast.message} type={toast.type} />}
+            </AnimatePresence>
         </div>
     );
 }
