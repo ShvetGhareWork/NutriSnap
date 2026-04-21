@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
     LayoutDashboard, Scan, BookOpen, Dumbbell, Camera, MessageCircle,
-    User, Settings, Zap, LogOut,
+    User, Settings, Zap, LogOut, Activity,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ const navItems = [
     { href: '/member/recipes', icon: BookOpen, label: 'Recipes' },
     { href: '/member/workouts', icon: Dumbbell, label: 'Workouts' },
     { href: '/member/physique', icon: Camera, label: 'Physique AI' },
+    { href: '/member/fitness', icon: Activity, label: 'Fitness' },
     { href: '/member/coach', icon: MessageCircle, label: 'AI Coach' },
 ];
 

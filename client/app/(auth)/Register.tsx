@@ -18,6 +18,11 @@ function RegisterForm() {
         e.preventDefault();
         setError('');
 
+        if (!form.email.includes('@') || !form.email.includes('.com')) {
+            setError('Please enter a valid email address containing "@" and ".com"');
+            return;
+        }
+
         if (form.password !== form.confirmPassword) {
             setError('Passwords do not match');
             return;

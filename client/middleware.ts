@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   });
 
   // Public paths that don't need auth
-  const publicPaths = ['/', '/login', '/register', '/select-role', '/verify-email', '/forgot-password'];
+  const publicPaths = ['/', '/login', '/register', '/select-role', '/verify-email', '/forgot-password', '/auth/callback'];
   const isPublic = publicPaths.some(
     (path) => pathname === path || pathname.startsWith('/api/auth')
   );
@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Redirect logged-in users away from auth pages (login, register), but allow select-role if they have no role
-    if (isPublic && pathname !== '/' && pathname !== '/select-role') {
+    if (isPublic && pathname !== '/' && pathname !== '/select-role' && pathname !== '/auth/callback') {
       if (!role) {
          return NextResponse.redirect(new URL('/select-role', request.url));
       }

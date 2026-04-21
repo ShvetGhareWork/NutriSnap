@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Zap, LayoutDashboard, Camera, BookOpen, Dumbbell, Eye, UserCircle, Settings, Bell, MessageCircle, LogOut, Menu, X, ChevronLeft } from "lucide-react";
+import { Zap, LayoutDashboard, Camera, BookOpen, Dumbbell, Eye, UserCircle, Settings, Bell, MessageCircle, LogOut, Menu, X, ChevronLeft, Activity } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRemindersRunner } from "@/hooks/useRemindersRunner";
 import { useGlobalStore } from "@/store/useGlobalStore";
@@ -16,6 +16,7 @@ const NAV_MAIN = [
     { label: "Recipes", icon: BookOpen, href: "/recipes" },
     { label: "Workouts", icon: Dumbbell, href: "/workout" },
     { label: "Physique AI", icon: Eye, href: "/physique-ai" },
+    { label: "Fitness", icon: Activity, href: "/fitness" },
     { label: "Coach Protocols", icon: Dumbbell, href: "/coach-protocol" },
     { label: "Messages", icon: MessageCircle, href: "/messages" },
     { label: "Find a Coach", icon: UserCircle, href: "/find-coach" },

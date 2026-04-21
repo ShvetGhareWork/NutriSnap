@@ -363,7 +363,7 @@ export default function MemberOnboarding() {
     const onChange = (partial: Partial<MemberData>) => setData(prev => ({ ...prev, ...partial }));
 
     const isValid = () => {
-        if (step === 0) return data.firstName && data.email;
+        if (step === 0) return data.firstName && data.email && data.email.includes('@') && data.email.includes('.com');
         if (step === 1) return data.heightCm && data.weightKg;
         if (step === 2) return data.goal && data.experience;
         if (step === 3) return data.activityLevel;

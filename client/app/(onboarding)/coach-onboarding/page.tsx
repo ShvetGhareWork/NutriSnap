@@ -244,7 +244,7 @@ function StepClients({ data, onChange }: { data: CoachData; onChange: (d: Partia
     const addEmail = () => {
         const email = emailInput.trim();
         if (!email) return;
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError("Enter a valid email"); return; }
+        if (!email.includes('@') || !email.includes('.com')) { setEmailError("Enter a valid email containing '@' and '.com'"); return; }
         if (data.inviteEmails.includes(email)) { setEmailError("Already added"); return; }
         onChange({ inviteEmails: [...data.inviteEmails, email] });
         setEmailInput(""); setEmailError("");
@@ -358,7 +358,7 @@ export default function CoachOnboarding() {
     const onChange = (partial: Partial<CoachData>) => setData(prev => ({ ...prev, ...partial }));
 
     const isValid = () => {
-        if (step === 0) return data.firstName && data.email;
+        if (step === 0) return data.firstName && data.email && data.email.includes('@') && data.email.includes('.com');
         if (step === 1) return data.specialties.length > 0 && data.coachingStyle;
         if (step === 2) return data.clientMethod;
         if (step === 3) return data.gymName || data.programStyle;
